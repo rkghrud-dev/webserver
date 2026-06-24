@@ -70,7 +70,7 @@
   .menu .mi:hover{background:#f4f6f9}
   .menu .mt{font-size:11px;color:var(--hint);padding:6px 9px 3px}
 
-  main{max-width:880px;margin:0 auto;padding:22px 20px}
+  main{max-width:1240px;margin:0 auto;padding:22px 24px}
   .ptitle{font-size:18px;font-weight:600}
   .psub{font-size:13px;color:var(--muted);margin-top:2px}
   .banner{display:flex;align-items:center;gap:9px;padding:11px 13px;border-radius:var(--radius);font-size:12.5px;margin:14px 0}
@@ -90,15 +90,48 @@
   .pill{font-size:12px;padding:5px 11px;border-radius:var(--radius);border:1px solid var(--border);color:var(--muted);background:#fff;cursor:pointer}
   .pill.active{background:var(--blue);border-color:var(--blue);color:#fff}
   table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .work-table{table-layout:fixed}
   th{text-align:left;font-size:11.5px;font-weight:500;color:var(--hint);padding:10px 14px;background:var(--bg)}
-  td{padding:11px 14px;border-top:1px solid var(--border);font-size:13px}
+  td{padding:8px 10px;border-top:1px solid var(--border);font-size:12.5px;vertical-align:middle}
   td .em{font-size:11px;color:var(--hint)}
+  .mono{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;font-size:12px}
+  .clip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mini-btn{border:1px solid var(--border);background:#fff;color:var(--muted);border-radius:6px;padding:4px 7px;font-size:11px;white-space:nowrap}
+  .mini-btn.done{background:var(--green-bg);border-color:transparent;color:var(--green-tx)}
+  .mini-btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+  .bulkbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:10px 0}
+  .bulkbar .mini-btn{padding:5px 9px}
+  .copy-format{font-size:11.5px;color:var(--muted);margin:-3px 0 9px}
+  .rowcheck{width:16px;height:16px;margin:0}
   .actions{text-align:right;white-space:nowrap}
   .actions .btn{padding:5px 10px;font-size:11.5px;margin-left:5px}
+  .key-panel{max-width:960px;margin-top:14px}
+  .key-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .key-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
+  .key-field label{font-size:11.5px}
+  .key-field input{margin-bottom:0}
+  .key-status{font-size:12px;color:var(--muted);margin-top:10px}
+  .tool-row{display:grid;grid-template-columns:1.2fr .8fr .8fr .9fr auto;gap:8px;align-items:end}
+  select{width:100%;height:38px;border:1px solid var(--border);border-radius:var(--radius);padding:0 10px;background:#fff;color:var(--text);font-family:inherit;font-size:13px}
+  .statbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+  .stat{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;min-width:110px}
+  .stat .n{font-size:16px;font-weight:600}
+  .stat .l{font-size:11px;color:var(--hint)}
+  .orders-wrap{overflow:auto;border-radius:var(--radius)}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.32);display:flex;align-items:center;justify-content:center;padding:18px;z-index:50}
+  .modal{width:min(460px,100%);background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 18px 50px rgba(15,23,42,.18)}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
+  .modal-title{font-size:15px;font-weight:600}
+  .modal-body{padding:16px}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;padding:0 16px 16px}
+  .code-cell{display:flex;align-items:center;gap:6px;min-width:0}
+  .code-cell .clip{flex:1}
+  .code-empty{color:var(--amber-tx);font-size:11px}
 
   @media(max-width:640px){
     .login-card{flex-direction:column} .brand{flex:none}
     .grid{grid-template-columns:1fr} main{padding:16px}
+    .tool-row{grid-template-columns:1fr}
   }
 </style>
 </head>
@@ -203,10 +236,81 @@
     </div>
   </main>
 
+  <main id="page-cafeshipment" class="hide">
+    <div class="ptitle">CafeShipment</div>
+    <div class="psub">저장된 마켓 키로 주문을 서버에서 수집하고, PC와 앱에서 같은 주문 상태를 보게 됩니다</div>
+    <div class="card" style="margin-top:14px">
+      <div class="ct" style="margin-bottom:12px">주문 수집</div>
+      <div class="tool-row">
+        <div>
+          <label>수집 마켓</label>
+          <select id="cs-market" onchange="loadCafeShipmentOrders()"></select>
+        </div>
+        <div>
+          <label>시작일</label>
+          <input id="cs-start" type="date" style="margin-bottom:0">
+        </div>
+        <div>
+          <label>종료일</label>
+          <input id="cs-end" type="date" style="margin-bottom:0">
+        </div>
+        <div>
+          <label>주문상태</label>
+          <select id="cs-status">
+            <option value="">기본/전체</option>
+            <option value="N20,N21">Cafe24 입금전/상품준비</option>
+            <option value="N20">Cafe24 입금전</option>
+            <option value="N21">Cafe24 상품준비</option>
+            <option value="N10">Cafe24 주문접수</option>
+            <option value="ACCEPT,INSTRUCT">쿠팡 결제완료/상품준비</option>
+            <option value="ACCEPT">쿠팡 결제완료</option>
+            <option value="INSTRUCT">쿠팡 상품준비중</option>
+          </select>
+        </div>
+        <button class="btn primary" onclick="collectCafeShipmentOrders()" style="height:38px"><i class="ti ti-cloud-download"></i> 수집</button>
+      </div>
+      <div class="key-status" id="cs-msg">Cafe24/쿠팡 마켓과 키를 먼저 저장하면 주문 수집을 시작할 수 있습니다.</div>
+    </div>
+    <div class="statbar">
+      <div class="stat"><div class="n" id="cs-total">0</div><div class="l">저장 주문</div></div>
+      <div class="stat"><div class="n" id="cs-market-count">0</div><div class="l">수집 마켓</div></div>
+      <div class="stat"><div class="n" id="cs-last">-</div><div class="l">최근 수집</div></div>
+    </div>
+    <div class="bulkbar">
+      <button class="mini-btn" onclick="setAllOrderChecks(true)">전체 선택</button>
+      <button class="mini-btn" onclick="setAllOrderChecks(false)">전체 해제</button>
+      <button class="mini-btn primary" onclick="copySelectedShipOrders()">출고용</button>
+      <span class="copy-format" id="cs-selected-count">선택 0 / 0</span>
+      <button class="mini-btn">코드검수</button>
+      <button class="mini-btn" onclick="checkOnlyOrderFlag('copied')">복사완료만 체크</button>
+      <button class="mini-btn" onclick="checkOnlyViewedOrders()">조회완료만 체크</button>
+      <button class="mini-btn">컬럼선택</button>
+      <button class="mini-btn">다음조회 제외</button>
+    </div>
+    <div class="orders-wrap">
+      <table class="work-table">
+        <thead><tr>
+          <th style="width:46px">선택</th>
+          <th style="width:115px">수집원</th>
+          <th style="width:44px">#</th>
+          <th style="width:100px">마켓</th>
+          <th style="width:120px">주문일</th>
+          <th style="width:115px">상품코드</th>
+          <th style="width:78px">실재고</th>
+          <th>상품명</th>
+          <th style="width:48px">수량</th>
+          <th style="width:100px">수령인명</th>
+          <th style="width:100px">진행사항</th>
+        </tr></thead>
+        <tbody id="cs-orders"></tbody>
+      </table>
+    </div>
+  </main>
+
   <main id="page-markets" class="hide">
     <div class="ptitle">내 마켓</div>
     <div class="psub">한 계정으로 여러 쇼핑몰을 운영할 수 있습니다. 마켓을 추가하세요</div>
-    <div class="card" style="max-width:720px;margin-top:14px">
+    <div class="card" style="max-width:960px;margin-top:14px">
       <div class="ct" style="margin-bottom:12px">마켓 추가</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
         <div style="flex:1;min-width:160px"><label>마켓 이름</label><input id="m-alias" placeholder="예: 홈런몰" style="margin-bottom:0"></div>
@@ -220,16 +324,144 @@
       </div>
       <div class="err" id="m-msg"></div>
     </div>
-    <div id="market-list" style="max-width:720px;margin-top:14px"></div>
+    <div id="market-list" style="max-width:960px;margin-top:14px"></div>
+    <div id="key-editor" class="card key-panel hide"></div>
   </main>
+</div>
+
+<div id="product-code-modal" class="modal-backdrop hide">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">상품코드 직접 입력</div>
+      <button class="mini-btn" onclick="closeProductCodeModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pc-order-id">
+      <label>상품코드</label>
+      <input id="pc-code" placeholder="예: GS2100557E">
+      <label>메모</label>
+      <input id="pc-note" placeholder="선택 입력">
+      <div class="key-status" id="pc-info"></div>
+      <div class="err" id="pc-msg"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeProductCodeModal()">닫기</button>
+      <button class="btn primary" onclick="saveProductCodeOverride()">저장</button>
+    </div>
+  </div>
 </div>
 
 <script>
 let ME=null, MODE='login', FILTER='pending';
 const $=id=>document.getElementById(id);
-async function api(path,opts){const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'}},opts||{}));let d={};try{d=await r.json()}catch(e){}if(!r.ok)throw new Error(d.detail||'오류가 발생했습니다');return d;}
+async function api(path,opts){const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'}},opts||{}));let d={};try{d=await r.json()}catch(e){}if(!r.ok){const detail=d.detail;throw new Error(typeof detail==='string'?detail:(detail&&detail.message)||'오류가 발생했습니다');}return d;}
 function show(view){$('view-login').classList.toggle('hide',view!=='login');$('view-app').classList.toggle('hide',view!=='app');}
 function initial(s){return (s||'U').trim().charAt(0).toUpperCase();}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function money(v){const n=Number(v||0);return Number.isFinite(n)?n.toLocaleString('ko-KR'):'0';}
+function shortDt(v){return v?String(v).slice(0,19):'-';}
+function orderKey(o){return `cs-order-${o.id||o.marketId+'-'+o.orderId+'-'+o.orderItemCode}`;}
+function orderFlag(o,name){return localStorage.getItem(`${orderKey(o)}-${name}`)==='1';}
+function orderViewed(o){return localStorage.getItem(`${orderKey(o)}-viewed`)!=='0';}
+function shipText(o){return [
+  `마켓: ${o.marketName||''}`,
+  `주문번호: ${o.orderId||''}`,
+  `상품코드: ${o.productCode||''}`,
+  `상품명: ${o.productName||''}`,
+  `수량: ${o.quantity||0}`,
+  `수령인: ${o.recipientName||''}`,
+  `휴대폰: ${o.recipientCellPhone||o.recipientPhone||''}`,
+  `상태: ${o.orderStatus||''}`,
+  `주문일: ${shortDt(o.orderDate)}`
+].join('\n');}
+function toggleOrderFlag(id,name){
+  const key=`cs-order-${id}-${name}`;
+  localStorage.setItem(key,localStorage.getItem(key)==='1'?'0':'1');
+  loadCafeShipmentOrders();
+}
+function selectedOrderIds(){return [...document.querySelectorAll('[data-order-check]:checked')].map(el=>String(el.value));}
+function updateOrderSelectionCount(){const total=document.querySelectorAll('[data-order-check]').length,sel=selectedOrderIds().length;const el=$('cs-selected-count');if(el)el.textContent=`선택 ${sel} / ${total}`;}
+function setAllOrderChecks(on){document.querySelectorAll('[data-order-check]').forEach(el=>{el.checked=on;});updateOrderSelectionCount();}
+function checkOnlyOrderFlag(name){document.querySelectorAll('[data-order-check]').forEach(el=>{const o=(window.CS_ORDERS||[]).find(x=>String(x.id)===String(el.value));el.checked=!!(o&&orderFlag(o,name));});updateOrderSelectionCount();}
+function checkOnlyViewedOrders(){document.querySelectorAll('[data-order-check]').forEach(el=>{const o=(window.CS_ORDERS||[]).find(x=>String(x.id)===String(el.value));el.checked=!!(o&&orderViewed(o));});updateOrderSelectionCount();}
+function setOrderFlagById(id,name,on){
+  const o=(window.CS_ORDERS||[]).find(x=>String(x.id)===String(id));
+  if(!o)return;
+  localStorage.setItem(`${orderKey(o)}-${name}`,on?'1':'0');
+}
+function setSelectedOrderFlag(name,on){
+  selectedOrderIds().forEach(id=>setOrderFlagById(id,name,on));
+  loadCafeShipmentOrders();
+}
+function openProductCodeModal(id){
+  const o=(window.CS_ORDERS||[]).find(x=>String(x.id)===String(id));
+  if(!o)return;
+  $('pc-order-id').value=String(o.id);
+  $('pc-code').value=o.productCode||'';
+  $('pc-note').value='';
+  $('pc-msg').textContent='';
+  $('pc-info').textContent=`${o.sourceMarket==='coupang'?'쿠팡':'Cafe24'} / ${o.marketName||''} / ${o.productName||''}`;
+  $('product-code-modal').classList.remove('hide');
+  setTimeout(()=>$('pc-code').focus(),20);
+}
+function closeProductCodeModal(){
+  $('product-code-modal').classList.add('hide');
+}
+async function saveProductCodeOverride(){
+  const orderId=Number($('pc-order-id').value||0);
+  const productCode=$('pc-code').value.trim();
+  const note=$('pc-note').value.trim();
+  $('pc-msg').textContent='';
+  if(!productCode){$('pc-msg').style.color='var(--amber-tx)';$('pc-msg').textContent='상품코드를 입력하세요.';return;}
+  try{
+    await api('/api/cafeshipment/orders/product-code',{method:'POST',body:JSON.stringify({order_id:orderId,product_code:productCode,note})});
+    closeProductCodeModal();
+    $('cs-msg').style.color='var(--green-tx)';
+    $('cs-msg').textContent='상품코드를 DB에 저장했습니다.';
+    await loadCafeShipmentOrders();
+  }catch(e){
+    $('pc-msg').style.color='var(--red-tx)';
+    $('pc-msg').textContent=e.message;
+  }
+}
+async function copyShipOrder(id){
+  const o=(window.CS_ORDERS||[]).find(x=>String(x.id)===String(id));
+  if(!o)return;
+  const ok=await copyToClipboard(shipText(o));
+  if(!ok){$('cs-msg').style.color='var(--red-tx)';$('cs-msg').textContent='브라우저가 클립보드 복사를 막았습니다. 주소창 권한 또는 HTTPS 설정이 필요합니다.';return;}
+  localStorage.setItem(`${orderKey(o)}-copied`,'1');
+  loadCafeShipmentOrders();
+}
+async function copyToClipboard(text){
+  if(navigator.clipboard&&window.isSecureContext){
+    try{await navigator.clipboard.writeText(text);return true;}catch(e){}
+  }
+  const ta=document.createElement('textarea');
+  ta.value=text;
+  ta.setAttribute('readonly','');
+  ta.style.position='fixed';
+  ta.style.left='-9999px';
+  ta.style.top='0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  let ok=false;
+  try{ok=document.execCommand('copy');}catch(e){ok=false;}
+  document.body.removeChild(ta);
+  return ok;
+}
+async function copySelectedShipOrders(){
+  const ids=selectedOrderIds();
+  if(!ids.length){$('cs-msg').style.color='var(--amber-tx)';$('cs-msg').textContent='출고용으로 복사할 주문을 먼저 체크하세요.';return;}
+  let d;try{d=await api('/api/cafeshipment/orders/export-clipboard',{method:'POST',body:JSON.stringify({order_ids:ids.map(Number)})});}
+  catch(e){$('cs-msg').style.color='var(--red-tx)';$('cs-msg').textContent=e.message;return;}
+  const ok=await copyToClipboard(d.clipboardText||'');
+  if(!ok){$('cs-msg').style.color='var(--red-tx)';$('cs-msg').textContent='브라우저가 클립보드 복사를 막았습니다. 주소창 권한 또는 HTTPS 설정이 필요합니다.';return;}
+  (window.CS_ORDERS||[]).filter(o=>ids.includes(String(o.id))).forEach(o=>localStorage.setItem(`${orderKey(o)}-copied`,'1'));
+  $('cs-msg').style.color='var(--green-tx)';
+  $('cs-msg').textContent=`클립보드에 ${d.count}건을 복사했습니다. 구글 시트의 상품코드 셀부터 바로 붙여넣으면 됩니다.${d.blankCount>0?' 공급사 상품명 빈칸 '+d.blankCount+'건은 맨 위로 올려뒀습니다.':''}`;
+  loadCafeShipmentOrders();
+}
 
 async function boot(){try{const d=await api('/api/me');ME=d.user;}catch(e){ME=null;}if(ME){renderApp();show('app');}else{show('login');}}
 
@@ -258,7 +490,7 @@ async function submitAuth(){
 
 async function logout(){try{await api('/api/logout',{method:'POST'});}catch(e){}ME=null;location.reload();}
 
-const PAGES=['home','admin','adminlog','profile','markets'];
+const PAGES=['home','admin','adminlog','profile','cafeshipment','markets'];
 function go(page){
   PAGES.forEach(p=>$('page-'+p)&&$('page-'+p).classList.toggle('hide',p!==page));
   $('tab-home').classList.toggle('active',page==='home');
@@ -268,6 +500,7 @@ function go(page){
   if(page==='admin')loadMembers();
   if(page==='adminlog')loadAccessLog();
   if(page==='profile')loadProfile();
+  if(page==='cafeshipment')loadCafeShipment();
   if(page==='markets')loadMarkets();
 }
 function toggleAdminMenu(e){e.stopPropagation();$('user-menu').classList.add('hide');$('admin-menu').classList.toggle('hide');}
@@ -296,7 +529,7 @@ function renderCards(){
     {ic:'ti-scan',cls:'',t:'WebOCR',d:'상품 이미지와 마켓 정보를 처리하는 OCR 기반 업무 프로그램',
      row:`<button class="btn" style="flex:1">다운로드 페이지</button>`+(on?`<button class="btn primary" style="flex:1"><i class="ti ti-download"></i> EXE 받기</button>`:lockBtn('EXE 받기'))},
     {ic:'ti-truck-delivery',cls:'',t:'CafeShipment',d:'Cafe24 주문·배송 정보를 수집하고 출고를 준비하는 프로그램',
-     row:(on?`<button class="btn primary" style="flex:1"><i class="ti ti-player-play"></i> 주문 수집 시작</button>`:lockBtn('주문 수집 시작'))+`<button class="btn">내역</button><button class="btn">설정</button>`},
+     row:(on?`<button class="btn primary" style="flex:1" onclick="go('cafeshipment')"><i class="ti ti-player-play"></i> 주문 수집 시작</button>`:lockBtn('주문 수집 시작'))+`<button class="btn" ${on?"onclick=\"go('cafeshipment')\"":'disabled'}>내역</button><button class="btn" ${on?"onclick=\"go('markets')\"":'disabled'}>설정</button>`},
     {ic:'ti-key',cls:'amber',t:'키 설정',d:'쿠팡·Cafe24 등 마켓 API 키를 서버에 안전하게 저장합니다',
      row:(on?`<button class="btn" style="flex:1" onclick="go('markets')">내 마켓 / 키</button>`:lockBtn('키 설정 열기'))+`<button class="btn" ${on?"onclick=\"go('markets')\"":'disabled'}><i class="ti ti-plus"></i> 마켓 추가</button>`},
   ];
@@ -339,16 +572,178 @@ function loadProfile(){$('p-email').value=ME.email;$('p-name').value=ME.name||''
 async function saveProfile(){try{const d=await api('/api/profile',{method:'POST',body:JSON.stringify({name:$('p-name').value.trim(),org:$('p-org').value.trim()})});ME=d.user;updateChip();$('p-msg').style.color='var(--green-tx)';$('p-msg').textContent='저장되었습니다.';}catch(e){$('p-msg').style.color='var(--red-tx)';$('p-msg').textContent=e.message;}}
 async function changePw(){try{await api('/api/change-password',{method:'POST',body:JSON.stringify({currentPassword:$('p-cur').value,newPassword:$('p-new').value})});$('p-cur').value='';$('p-new').value='';$('p-pwmsg').style.color='var(--green-tx)';$('p-pwmsg').textContent='비밀번호가 변경되었습니다.';}catch(e){$('p-pwmsg').style.color='var(--red-tx)';$('p-pwmsg').textContent=e.message;}}
 
+// CafeShipment
+let CS_MARKETS=[];
+function dateInputValue(d){return d.toISOString().slice(0,10)}
+function setupCafeShipmentDates(){
+  if($('cs-start').value&&$('cs-end').value)return;
+  const end=new Date();
+  const start=new Date(Date.now()-13*24*60*60*1000);
+  $('cs-start').value=dateInputValue(start);
+  $('cs-end').value=dateInputValue(end);
+}
+async function loadCafeShipment(){
+  setupCafeShipmentDates();
+  let md={markets:[]};try{md=await api('/api/markets');}catch(e){}
+  let kd={keys:[]};try{kd=await api('/api/keys');}catch(e){}
+  const savedKeys={};(kd.keys||[]).forEach(k=>{savedKeys[k.marketId+'|'+k.market]=k.saved;});
+  CS_MARKETS=(md.markets||[]).filter(m=>['cafe24','coupang'].includes(m.type));
+  $('cs-market-count').textContent=CS_MARKETS.length;
+  $('cs-market').innerHTML=CS_MARKETS.length
+    ? CS_MARKETS.map(m=>`<option value="${m.id}" ${savedKeys[m.id+'|'+m.type]?'':'disabled'}>${m.alias} (${MKT[m.type]||m.type})${savedKeys[m.id+'|'+m.type]?'':' - 키 필요'}</option>`).join('')
+    : '<option value="">수집 마켓 없음</option>';
+  const usable=CS_MARKETS.some(m=>savedKeys[m.id+'|'+m.type]);
+  $('cs-msg').style.color=usable?'var(--muted)':'var(--amber-tx)';
+  $('cs-msg').textContent=usable?'수집할 기간과 상태를 선택한 뒤 주문을 수집하세요.':'내 마켓 / 키에서 Cafe24 또는 쿠팡 마켓과 키를 먼저 저장하세요.';
+  await loadCafeShipmentOrders();
+}
+async function collectCafeShipmentOrders(){
+  const marketId=parseInt($('cs-market').value||'0',10);
+  if(!marketId){$('cs-msg').style.color='var(--red-tx)';$('cs-msg').textContent='수집할 마켓을 선택하세요.';return;}
+  $('cs-msg').style.color='var(--muted)';$('cs-msg').textContent='주문 수집 중입니다...';
+  try{
+    const body={market_id:marketId,start_date:$('cs-start').value,end_date:$('cs-end').value,order_status:$('cs-status').value||null};
+    const d=await api('/api/cafeshipment/orders/collect',{method:'POST',body:JSON.stringify(body)});
+    $('cs-msg').style.color='var(--green-tx)';
+    $('cs-msg').textContent=`수집 완료: ${d.collected}건 / 저장 ${d.saved}건 (${d.startDate} ~ ${d.endDate})`;
+    await loadCafeShipmentOrders();
+  }catch(e){
+    $('cs-msg').style.color='var(--red-tx)';
+    $('cs-msg').textContent=e.message;
+  }
+}
+async function loadCafeShipmentOrders(){
+  const marketId=$('cs-market').value;
+  const path='/api/cafeshipment/orders'+(marketId?`?market_id=${encodeURIComponent(marketId)}&limit=200`:'?limit=200');
+  let d;try{d=await api(path);}catch(e){$('cs-orders').innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--hint);padding:24px">주문을 불러오지 못했습니다.</td></tr>';return;}
+  $('cs-total').textContent=d.total||0;
+  window.CS_ORDERS=d.orders||[];
+  const latest=(d.orders||[]).map(o=>o.collectedAt).filter(Boolean).sort().pop();
+  $('cs-last').textContent=latest?latest.slice(5,16):'-';
+  $('cs-orders').innerHTML=(d.orders||[]).map(o=>{
+    const viewed=orderViewed(o),copied=orderFlag(o,'copied');
+    const sourceLabel=o.marketName||o.sourceMarket||'-';
+    const marketLabel=o.sourceMarket==='coupang'?(o.marketName||'쿠팡'):(o.marketName||'홈런마켓');
+    const progress=copied?'복사완료':(viewed?'조회완료':'조회대기');
+    return `<tr>
+    <td><input class="rowcheck" data-order-check type="checkbox" value="${Number(o.id)}"></td>
+    <td><div class="clip" title="${esc(sourceLabel)}">${esc(sourceLabel)}</div></td>
+    <td class="mono">${esc((d.orders||[]).indexOf(o)+1)}</td>
+    <td><div class="clip" title="${esc(marketLabel)}">${esc(marketLabel)}</div></td>
+    <td>${esc(shortDt(o.orderDate))}</td>
+    <td class="mono"><div class="code-cell">${o.productCode
+      ? `<button class="mini-btn done" onclick="openProductCodeModal(${Number(o.id)})" title="DB 저장값/자동 계산값 수정">${esc(o.productCode)}</button>`
+      : `<button class="mini-btn" onclick="openProductCodeModal(${Number(o.id)})"><span class="code-empty">입력</span></button>`}</div></td>
+    <td class="mono"></td>
+    <td><div class="clip" title="${esc(o.productName||'')}">${esc(o.productName||'-')}</div></td>
+    <td>${esc(o.quantity||0)}</td>
+    <td>${esc(o.recipientName||'-')}</td>
+    <td><span class="badge gray">${esc(progress)}</span></td>
+  </tr>`}).join('')
+    ||'<tr><td colspan="11" style="text-align:center;color:var(--hint);padding:24px">수집된 주문이 없습니다.</td></tr>';
+  document.querySelectorAll('[data-order-check]').forEach(el=>el.addEventListener('change',updateOrderSelectionCount));
+  updateOrderSelectionCount();
+}
+
 // 마켓 (1인 다몰)
 const MKT={cafe24:'Cafe24',coupang:'쿠팡',naver:'네이버','11st':'11번가',lotteon:'롯데ON',esm:'ESM',other:'기타'};
+const KEY_FIELDS={
+  naver:[
+    ['NAVER_COMMERCE_CLIENT_ID','Client ID','req'],
+    ['NAVER_COMMERCE_CLIENT_SECRET','Client Secret','req'],
+    ['NAVER_COMMERCE_ACCOUNT_ID','Account ID','opt'],
+    ['NAVER_REFERENCE_CHANNEL_PRODUCT_NO','기준 상품번호','opt']
+  ],
+  coupang:[
+    ['access_key','Access Key','req'],
+    ['secret_key','Secret Key','req'],
+    ['vendor_id','Vendor ID','req'],
+    ['vendor_user_id','Vendor User ID','opt'],
+    ['return_center_code','반품지 코드','opt'],
+    ['outbound_shipping_place_code','출고지 코드','opt']
+  ],
+  cafe24:[
+    ['MallId','Mall ID','req'],
+    ['ClientId','Client ID','req'],
+    ['ClientSecret','Client Secret','req'],
+    ['AccessToken','Access Token','req'],
+    ['RefreshToken','Refresh Token','req'],
+    ['RedirectUri','Redirect URI','opt'],
+    ['ApiVersion','API Version','opt'],
+    ['ShopNo','Shop No','opt'],
+    ['Scope','Scope','opt']
+  ],
+  lotteon:[
+    ['seller_id','Seller ID','req'],
+    ['vendor_no','Vendor No','req'],
+    ['api_key','API Key','req'],
+    ['trGrpCd','거래처 그룹코드','opt'],
+    ['trNo','거래처 번호','opt'],
+    ['trNm','거래처명','opt'],
+    ['owhpNo','출고지 번호','opt'],
+    ['rtrpNo','반품지 번호','opt'],
+    ['dvCstPolNo','배송비 정책번호','opt'],
+    ['hdcCd','택배사 코드','opt']
+  ],
+  '11st':[
+    ['api_key','Open API Key','req'],
+    ['seller_id','Seller ID','opt'],
+    ['nickname','별칭','opt'],
+    ['registered_pc_ip','등록 PC IP','opt'],
+    ['registered_server_ip','등록 서버 IP','opt']
+  ],
+  esm:[
+    ['master_id','ESM Master ID','req'],
+    ['auction_seller_id','옥션 판매자 ID','opt'],
+    ['gmarket_seller_id','G마켓 판매자 ID','opt'],
+    ['delivery_information_template_code','배송 템플릿 코드','opt']
+  ],
+  other:[
+    ['memo','메모','opt']
+  ]
+};
+let KEY_STATUS={};
+function fieldBadge(kind){return kind==='req'?'<span class="badge amber">필수</span>':'<span class="badge gray">선택</span>'}
 async function loadMarkets(){
   let d;try{d=await api('/api/markets');}catch(e){return;}
+  let kd={keys:[]};try{kd=await api('/api/keys');}catch(e){}
+  KEY_STATUS={};(kd.keys||[]).forEach(k=>{KEY_STATUS[k.marketId+'|'+k.market]=k;});
   $('market-list').innerHTML=d.markets.length
-    ?('<div class="card" style="padding:6px 0"><table style="border:none">'+d.markets.map(m=>`<tr><td style="padding:10px 16px"><b>${m.alias}</b> <span class="badge gray">${MKT[m.type]||m.type}</span></td><td class="actions" style="padding-right:16px"><button class="btn" onclick="delMarket(${m.id})"><i class="ti ti-trash"></i> 삭제</button></td></tr>`).join('')+'</table></div>')
+    ?('<div class="card" style="padding:6px 0"><table style="border:none">'+d.markets.map(m=>{
+      const ks=KEY_STATUS[m.id+'|'+m.type];
+      const badge=ks&&ks.saved?`<span class="badge green">키 저장됨</span>`:`<span class="badge amber">키 미등록</span>`;
+      return `<tr><td style="padding:10px 16px"><b>${m.alias}</b> <span class="badge gray">${MKT[m.type]||m.type}</span> ${badge}<div class="em">${ks&&ks.fields.length?'저장 필드: '+ks.fields.join(', '):'키 원문은 저장 후 다시 표시하지 않습니다.'}</div></td><td class="actions" style="padding-right:16px"><button class="btn" onclick="openKeyEditor(${m.id},'${m.type}','${String(m.alias).replace(/'/g,"\\'")}')"><i class="ti ti-key"></i> 키 설정</button><button class="btn" onclick="delMarket(${m.id})"><i class="ti ti-trash"></i> 삭제</button></td></tr>`;
+    }).join('')+'</table></div>')
     :'<div class="ph" style="min-height:90px"><i class="ti ti-building-store" style="font-size:22px"></i><span>아직 등록된 마켓이 없습니다</span></div>';
 }
 async function addMarket(){const alias=$('m-alias').value.trim();if(!alias){$('m-msg').style.color='var(--red-tx)';$('m-msg').textContent='마켓 이름을 입력하세요.';return;}try{await api('/api/markets',{method:'POST',body:JSON.stringify({alias,market_type:$('m-type').value})});$('m-alias').value='';$('m-msg').textContent='';loadMarkets();}catch(e){$('m-msg').style.color='var(--red-tx)';$('m-msg').textContent=e.message;}}
-async function delMarket(id){if(!confirm('이 마켓을 삭제할까요?'))return;try{await api('/api/markets/'+id,{method:'DELETE'});loadMarkets();}catch(e){alert(e.message);}}
+async function delMarket(id){if(!confirm('이 마켓을 삭제할까요? 저장된 키 상태도 함께 삭제됩니다.'))return;try{await api('/api/markets/'+id,{method:'DELETE'});$('key-editor').classList.add('hide');loadMarkets();}catch(e){alert(e.message);}}
+
+function openKeyEditor(id,type,alias){
+  const fields=KEY_FIELDS[type]||KEY_FIELDS.other;
+  const ks=KEY_STATUS[id+'|'+type];
+  const saved=ks&&ks.saved;
+  $('key-editor').classList.remove('hide');
+  $('key-editor').innerHTML=`<div class="key-head"><div><div class="ct">${alias} 키 설정</div><div class="psub">${MKT[type]||type} API 키를 서버에 저장합니다. 저장 후 원문은 다시 표시하지 않습니다.</div></div>${saved?'<span class="badge green">저장됨</span>':'<span class="badge amber">미등록</span>'}</div>
+    <div class="key-grid">${fields.map(([k,l,kind])=>`<div class="key-field"><label>${l} ${fieldBadge(kind)}</label><input data-key-field="${k}" type="${/secret|token|key|password/i.test(k)?'password':'text'}" placeholder="${saved?'새 값으로 교체하려면 입력':''}"></div>`).join('')}</div>
+    <div class="key-status" id="key-save-msg">${saved?'현재 저장된 필드: '+ks.fields.join(', '):'필수값부터 입력해 저장하세요.'}</div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" onclick="$('key-editor').classList.add('hide')">닫기</button><button class="btn primary" onclick="saveMarketKeys(${id},'${type}')"><i class="ti ti-device-floppy"></i> 서버에 저장</button></div>`;
+  $('key-editor').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+async function saveMarketKeys(id,type){
+  const payload={};
+  document.querySelectorAll('#key-editor [data-key-field]').forEach(el=>{payload[el.getAttribute('data-key-field')]=el.value;});
+  try{
+    const d=await api('/api/keys',{method:'POST',body:JSON.stringify({market_id:id,market:type,payload})});
+    $('key-save-msg').style.color='var(--green-tx)';
+    $('key-save-msg').textContent='저장되었습니다. 저장 필드: '+d.key.fields.join(', ');
+    document.querySelectorAll('#key-editor [data-key-field]').forEach(el=>el.value='');
+    await loadMarkets();
+  }catch(e){
+    $('key-save-msg').style.color='var(--red-tx)';
+    $('key-save-msg').textContent=e.message;
+  }
+}
 
 boot();
 </script>
