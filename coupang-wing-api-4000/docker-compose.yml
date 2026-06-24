@@ -1,0 +1,11 @@
+services:
+  coupang-wing-api:
+    build: .
+    container_name: coupang-wing-api
+    env_file:
+      - .env
+    restart: unless-stopped
+    ports:
+      - "4000:8000"
+    volumes:
+      - ./data:/data

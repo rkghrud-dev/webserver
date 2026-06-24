@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebOCR API 키 생성기</title>
+<style>
+  :root{--bg:#0f1226;--card:#1a1f3a;--card2:#222848;--line:#2e355c;--txt:#e8eaf6;
+        --muted:#9aa3c7;--accent:#6c5ce7;--accent2:#00b894;--warn:#ffb84d;--danger:#ff6b6b;}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(160deg,#0f1226,#161a33);color:var(--txt);
+       font-family:"Segoe UI","Malgun Gothic",sans-serif;line-height:1.5;padding:24px 16px 90px}
+  .wrap{max-width:860px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px;display:flex;gap:9px;align-items:center}
+  .sub{color:var(--muted);margin:0 0 18px;font-size:13.5px}
+  .note{background:var(--card2);border:1px solid var(--line);border-left:4px solid var(--accent);
+        border-radius:10px;padding:12px 15px;margin:0 0 18px;font-size:13px;color:#cfd5f0}
+  .path{font-family:Consolas,monospace;background:#0b0e1f;padding:1px 6px;border-radius:5px;color:#cdd4f5}
+  .target{display:flex;gap:8px;align-items:center;margin:0 0 14px;font-size:13px;color:var(--muted)}
+  .target input{flex:1}
+  .tabbar{display:flex;gap:6px;flex-wrap:wrap}
+  .tabbtn{background:var(--card2);border:1px solid var(--line);border-bottom:none;color:var(--muted);
+          padding:9px 16px;border-radius:10px 10px 0 0;cursor:pointer;font-size:13.5px;font-weight:600}
+  .tabbtn.active{background:var(--card);color:#fff;border-color:var(--accent)}
+  .panel{display:none;background:var(--card);border:1px solid var(--line);border-radius:0 12px 12px 12px;padding:16px 18px}
+  .panel.active{display:block}
+  .sec{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+       font-weight:700;font-size:14.5px;margin:18px 0 8px;color:#fff;border-bottom:1px solid var(--line);padding-bottom:6px}
+  .sec:first-of-type{margin-top:2px}
+  .tools{display:flex;gap:6px;align-items:center;font-weight:400}
+  .lnk{font-size:12px;color:#fff;background:var(--accent);text-decoration:none;padding:4px 10px;border-radius:7px;white-space:nowrap}
+  .lnk:hover{filter:brightness(1.12)}
+  .help-t{font-size:12px;color:var(--muted);background:transparent;border:1px solid var(--line);
+          padding:4px 10px;border-radius:7px;cursor:pointer}
+  .help-t:hover{color:#fff;border-color:var(--accent)}
+  .help{background:#0e1430;border:1px solid var(--line);border-radius:9px;padding:8px 14px 8px 8px;margin:0 0 8px;font-size:12.5px;color:#bcc4ea}
+  .help ol{margin:4px 0;padding-left:22px}
+  .help li{margin:2px 0}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 14px}
+  @media(max-width:620px){.grid{grid-template-columns:1fr}}
+  .field{display:flex;flex-direction:column;gap:3px}
+  label.fl{font-size:12px;color:var(--muted)}
+  input{background:#0e1124;border:1px solid var(--line);color:var(--txt);border-radius:8px;
+        padding:8px 10px;font-size:13px;font-family:inherit;width:100%}
+  input:focus{outline:none;border-color:var(--accent)}
+  .bar{position:fixed;left:0;right:0;bottom:0;background:#11142b;border-top:1px solid var(--line);
+       padding:12px 16px;display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap}
+  button.act{cursor:pointer;border:none;border-radius:9px;padding:10px 18px;font-size:13.5px;font-weight:600;font-family:inherit}
+  .btn{background:var(--accent);color:#fff}.btn:hover{filter:brightness(1.12)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+  .btn.ghost:hover{color:#fff;border-color:var(--accent)}
+  pre.log{background:#0b0e1f;border:1px solid var(--line);border-radius:8px;padding:11px 13px;margin:14px 0 0;
+          font-size:12px;color:#aeb6e0;max-height:160px;overflow:auto;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔑 WebOCR API 키 생성기</h1>
+  <p class="sub">A/B 계정 + 5개 마켓 키를 입력하면 WebOCR 형식의 키 파일로 묶어 ZIP으로 내려받습니다. 각 마켓 <b>🔗 바로가기</b>로 사이트에서 바로 발급받고, <b>❓ 도움말</b>로 방법을 확인하세요.</p>
+
+  <div class="note">
+    입력 후 <b>[키 파일 ZIP 생성]</b> → <span class="path">webocr_keys.zip</span> 다운로드 →
+    압축을 풀어 키 폴더 <span class="path">%LOCALAPPDATA%\WebOCR\key</span> 안에 그대로 넣으세요.
+    (홈런/준비 정리 폴더까지 포함) · 빈 마켓은 자동 생략.
+  </div>
+
+  <div class="target">
+    <span>저장(압축 풀) 위치 안내:</span>
+    <input id="targetPath" value="%LOCALAPPDATA%\WebOCR\key" readonly>
+  </div>
+
+  <div class="tabbar" id="tabbar"></div>
+  <div id="panels"></div>
+
+  <pre class="log" id="log" style="display:none"></pre>
+</div>
+
+<div class="bar">
+  <button class="act btn" onclick="generate()">⬇ 키 파일 ZIP 생성</button>
+  <button class="act btn ghost" onclick="preview()">생성될 파일 미리보기</button>
+  <button class="act btn ghost" onclick="if(confirm('모든 입력을 지울까요?')){localStorage.removeItem(LS);location.reload();}">입력 초기화</button>
+</div>
+
+<script>
+// ===== 마켓 섹션 정의 (필드 + 사이트 바로가기 + 도움말) =====
+const SECTIONS = [
+  {title:"네이버 커머스 API", market:"naver",
+   links:[{t:"커머스API센터",u:"https://apicenter.commerce.naver.com/"},{t:"스마트스토어센터",u:"https://sell.smartstore.naver.com/"}],
+   guide:["커머스API센터 로그인 → '애플리케이션 등록'으로 앱 생성","생성된 앱의 Client ID / Client Secret 복사","Account ID = 스마트스토어 판매자(계정) ID","앱에 상품 등록 권한이 부여됐는지 확인"],
+   fields:[{k:"client_id",l:"Client ID"},{k:"client_secret",l:"Client Secret",s:true},
+           {k:"account_id",l:"Account ID"},{k:"reference_channel_product_no",l:"기준 상품번호"}]},
+  {title:"쿠팡 Wing API", market:"coupang",
+   links:[{t:"쿠팡 WING",u:"https://wing.coupang.com/"}],
+   guide:["WING 로그인 → 상단 '추가서비스 > 오픈API 키 발급'","Access Key / Secret Key 복사","Vendor ID = 업체코드(보통 A로 시작)","반품지/출고지 코드 = WING '배송관리'에서 확인"],
+   fields:[{k:"access_key",l:"Access Key",s:true},{k:"secret_key",l:"Secret Key",s:true},
+           {k:"vendor_id",l:"Vendor ID"},{k:"vendor_user_id",l:"Vendor User ID"},
+           {k:"return_center_code",l:"반품지 코드"},{k:"outbound_shipping_place_code",l:"출고지 코드"}]},
+  {title:"롯데ON API", market:"lotte",
+   links:[{t:"롯데ON 셀러",u:"https://seller.lotteon.com/"}],
+   guide:["판매자센터 로그인 → API 인증키(서비스) 신청·발급","발급된 API Key 복사, Vendor No = 업체번호","거래처/출고지/반품지 정보는 판매자센터에서 확인"],
+   fields:[{k:"seller_id",l:"Seller ID"},{k:"vendor_no",l:"Vendor No"},{k:"api_key",l:"API Key",s:true},
+           {k:"trGrpCd",l:"거래처 그룹코드"},{k:"trNo",l:"거래처 번호"},{k:"trNm",l:"거래처명"},
+           {k:"owhpNo",l:"출고지 번호"},{k:"rtrpNo",l:"반품지 번호"},{k:"dvCstPolNo",l:"배송비 정책번호"},{k:"hdcCd",l:"택배사 코드"}]},
+  {title:"Cafe24", market:"cafe24",
+   links:[{t:"Cafe24 개발자센터",u:"https://developers.cafe24.com/"}],
+   guide:["개발자센터 → '앱 만들기'로 앱 생성 → Client ID / Secret 발급","앱 권한(Scope)에 상품·주문·배송 읽기/쓰기 체크","Redirect URI 등록","Access/Refresh Token은 WebOCR 앱에서 Cafe24 인증으로 발급 권장(여기 비워도 됨)"],
+   fields:[{k:"mall_id",l:"Mall ID"},{k:"client_id",l:"Client ID"},{k:"client_secret",l:"Client Secret",s:true},
+           {k:"access_token",l:"Access Token",s:true},{k:"refresh_token",l:"Refresh Token",s:true},
+           {k:"redirect_uri",l:"Redirect URI"},{k:"api_version",l:"API Version",d:"2026-03-01"},
+           {k:"shop_no",l:"Shop No",d:"1"},{k:"scope",l:"Scope"}]},
+];
+const ACCOUNTS = [{acc:"A",tab:"홈런 / A 계정"},{acc:"B",tab:"준비 / B 계정"}];
+
+const LS="webocr_keymaker_v2";
+const store=JSON.parse(localStorage.getItem(LS)||"{}");
+const save=()=>localStorage.setItem(LS,JSON.stringify(store));
+const V=k=>((store[k]??"")+"").trim();
+const setV=(k,v)=>{store[k]=v;save();};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+
+function secHead(title,links,guide){
+  const ls=(links||[]).map(L=>`<a class="lnk" href="${L.u}" target="_blank" rel="noopener">🔗 ${L.t}</a>`).join("");
+  const help=(guide&&guide.length)?`<button class="help-t" type="button" onclick="toggleHelp(this)">❓ 도움말</button>`:"";
+  const helpBox=(guide&&guide.length)?`<div class="help" style="display:none"><ol>${guide.map(g=>`<li>${g}</li>`).join("")}</ol></div>`:"";
+  return `<div class="sec"><span>${title}</span><span class="tools">${ls}${help}</span></div>${helpBox}`;
+}
+function fieldHTML(key,f){
+  const cur=store[key]??f.d??"";
+  return `<div class="field"><label class="fl">${f.l}</label>
+    <input data-k="${key}" value="${esc(cur)}" ${f.s?'type="password"':''}></div>`;
+}
+function toggleHelp(btn){
+  const sec=btn.closest(".sec"), h=sec.nextElementSibling;
+  if(h&&h.classList.contains("help")) h.style.display=(h.style.display==="none"?"block":"none");
+}
+
+const tabbar=document.getElementById("tabbar"), panels=document.getElementById("panels");
+function addTab(id,label,inner,active){
+  const b=document.createElement("div"); b.className="tabbtn"+(active?" active":""); b.textContent=label;
+  b.onclick=()=>{document.querySelectorAll(".tabbtn").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active"); document.getElementById(id).classList.add("active");};
+  tabbar.appendChild(b);
+  const p=document.createElement("div"); p.className="panel"+(active?" active":""); p.id=id; p.innerHTML=inner;
+  panels.appendChild(p);
+}
+ACCOUNTS.forEach((a,i)=>{
+  let html="";
+  SECTIONS.forEach(sec=>{
+    html+=secHead(sec.title,sec.links,sec.guide)+`<div class="grid">`;
+    sec.fields.forEach(f=>html+=fieldHTML(`${a.acc}.${sec.market}.${f.k}`,f));
+    html+=`</div>`;
+  });
+  addTab("panel_"+a.acc,a.tab,html,i===0);
+});
+// 공통 / 11번가 + AI
+let common="";
+common+=secHead("11번가 Open API",
+  [{t:"11번가 셀러오피스",u:"https://soffice.11st.co.kr/"}],
+  ["셀러오피스 → '오픈API 관리'에서 인증키(API Key) 발급","API를 사용할 PC/서버 IP를 '사용 IP'에 반드시 등록","Seller ID = 11번가 판매자 ID"])+
+  `<div class="grid">`+
+  fieldHTML("common.11st.api_key",{l:"Open API Key",s:true})+
+  fieldHTML("common.11st.seller_id",{l:"Seller ID"})+
+  fieldHTML("common.11st.nickname",{l:"별칭"})+
+  fieldHTML("common.11st.api_center_url",{l:"API 센터 URL",d:"https://openapi.11st.co.kr/openapi/OpenApiFrontMain.tmall"})+
+  fieldHTML("common.11st.registered_pc_ip",{l:"등록 PC IP"})+`</div>`;
+common+=secHead("AI API 키",
+  [{t:"OpenAI",u:"https://platform.openai.com/api-keys"},{t:"Anthropic",u:"https://console.anthropic.com/settings/keys"}],
+  ["OpenAI: platform.openai.com → API keys → Create new","Anthropic: console.anthropic.com → Settings → API Keys"])+
+  `<div class="grid">`+
+  fieldHTML("common.openai.api_key",{l:"OpenAI API Key",s:true})+
+  fieldHTML("common.anthropic.api_key",{l:"Anthropic API Key",s:true})+`</div>`;
+addTab("panel_common","공통 / 11번가",common,false);
+
+document.addEventListener("input",e=>{const k=e.target.getAttribute("data-k"); if(k) setV(k,e.target.value);});
+
+// ===== 파일 내용 생성 (MarketKeyMaker 로직 복제) =====
+const allEmpty=(...keys)=>keys.every(k=>!V(k));
+function naver(acc){
+  if(allEmpty(`${acc}.naver.client_id`,`${acc}.naver.client_secret`,`${acc}.naver.account_id`,`${acc}.naver.reference_channel_product_no`)) return null;
+  return `NAVER_COMMERCE_CLIENT_ID=${V(`${acc}.naver.client_id`)}\r\n`+
+         `NAVER_COMMERCE_CLIENT_SECRET=${V(`${acc}.naver.client_secret`)}\r\n`+
+         `NAVER_COMMERCE_ACCOUNT_ID=${V(`${acc}.naver.account_id`)}\r\n`+
+         `NAVER_REFERENCE_CHANNEL_PRODUCT_NO=${V(`${acc}.naver.reference_channel_product_no`)}\r\n`;
+}
+function coupang(acc){
+  if(allEmpty(`${acc}.coupang.access_key`,`${acc}.coupang.secret_key`,`${acc}.coupang.vendor_id`)) return null;
+  return `vendor_name=\r\nurl=\r\nip=\r\n`+
+         `vendor_id=${V(`${acc}.coupang.vendor_id`)}\r\n`+
+         `vendor_user_id=${V(`${acc}.coupang.vendor_user_id`)}\r\n`+
+         `return_center_code=${V(`${acc}.coupang.return_center_code`)}\r\n`+
+         `outbound_shipping_place_code=${V(`${acc}.coupang.outbound_shipping_place_code`)}\r\n`+
+         `access_key=${V(`${acc}.coupang.access_key`)}\r\n`+
+         `secret_key=${V(`${acc}.coupang.secret_key`)}\r\nexpires_at=\r\n`;
+}
+function lotte(acc,minimal){
+  if(allEmpty(`${acc}.lotte.seller_id`,`${acc}.lotte.vendor_no`,`${acc}.lotte.api_key`)) return null;
+  let lines=[`seller_id=${V(`${acc}.lotte.seller_id`)}`,`vendor_no=${V(`${acc}.lotte.vendor_no`)}`,`api_key=${V(`${acc}.lotte.api_key`)}`];
+  if(!minimal){
+    lines.push(`trGrpCd=${V(`${acc}.lotte.trGrpCd`)}`,`trNo=${V(`${acc}.lotte.trNo`)}`,`trNm=${V(`${acc}.lotte.trNm`)}`,
+      "trNmEn=","representative_name=","business_registration_no=","business_type=",
+      `owhpNo=${V(`${acc}.lotte.owhpNo`)}`,`rtrpNo=${V(`${acc}.lotte.rtrpNo`)}`,`dvCstPolNo=${V(`${acc}.lotte.dvCstPolNo`)}`,
+      "adtnDvCstPolNo=",`hdcCd=${V(`${acc}.lotte.hdcCd`)}`,"rtngHdcCd=","as_contact=","business_phone=","customer_service_phone=","joined_date=");
+  }
+  return lines.join("\r\n")+"\r\n";
+}
+function cafe24(acc){
+  if(allEmpty(`${acc}.cafe24.mall_id`,`${acc}.cafe24.client_id`,`${acc}.cafe24.client_secret`,`${acc}.cafe24.access_token`,`${acc}.cafe24.refresh_token`)) return null;
+  const now=new Date().toISOString().slice(0,19).replace("T"," ");
+  const o={MallId:V(`${acc}.cafe24.mall_id`),ClientId:V(`${acc}.cafe24.client_id`),ClientSecret:V(`${acc}.cafe24.client_secret`),
+    AccessToken:V(`${acc}.cafe24.access_token`),RefreshToken:V(`${acc}.cafe24.refresh_token`),RedirectUri:V(`${acc}.cafe24.redirect_uri`),
+    ApiVersion:V(`${acc}.cafe24.api_version`),ShopNo:V(`${acc}.cafe24.shop_no`),Scope:V(`${acc}.cafe24.scope`),
+    UpdatedAt:now,RefreshTokenUpdatedAt:now};
+  return JSON.stringify(o,null,2)+"\r\n";
+}
+function buildFiles(){
+  const F=[]; const add=(name,txt)=>{ if(txt!=null) F.push({name,text:txt}); };
+  add("naver_client_key.txt",naver("A"));
+  add("naver_key_junbi.txt",naver("B"));
+  add("coupang_wing_api.txt",coupang("A"));
+  add("coupang_api_junbi.txt",coupang("B"));
+  add("lotteon_api.txt",lotte("A",true));
+  add("lotteon_junbi_upload_defaults.txt",lotte("B",false));
+  add("cafe24_token_rkghrud1.json",cafe24("A"));
+  add("cafe24_token_jb.json",cafe24("B"));
+  const ek=V("common.11st.api_key");
+  if(ek){
+    add("elevenst_api_key.txt",`API_KEY=${ek}\r\n`);
+    add("마켓별_키정리/07_11번가/계정_API정보/11st_upload_id.txt",
+      `api_key=${ek}\r\nseller_id=${V("common.11st.seller_id")}\r\nnickname=${V("common.11st.nickname")}\r\n`+
+      `api_center_url=${V("common.11st.api_center_url")||"https://openapi.11st.co.kr/openapi/OpenApiFrontMain.tmall"}\r\n`+
+      `registered_pc_ip=${V("common.11st.registered_pc_ip")}\r\n`);
+  }
+  if(V("common.openai.api_key")) add("api_key.txt",V("common.openai.api_key")+"\r\n");
+  if(V("common.anthropic.api_key")) add("anthropic_api_key.txt",V("common.anthropic.api_key")+"\r\n");
+  const org=(folder,acc)=>{
+    add(`${folder}/Cafe24/${acc==="A"?"cafe24_token_rkghrud1.json":"cafe24_token_jb.json"}`,cafe24(acc));
+    add(`${folder}/네이버/${acc==="A"?"naver_client_key.txt":"naver_key_junbi.txt"}`,naver(acc));
+    add(`${folder}/쿠팡/${acc==="A"?"coupang_wing_api.txt":"coupang_api_junbi.txt"}`,coupang(acc));
+    add(`${folder}/롯데ON/${acc==="A"?"lotteon_api.txt":"lotteon_api_junbi.txt"}`,lotte(acc,acc==="A"));
+  };
+  org("홈런","A"); org("준비","B");
+  return F;
+}
+
+// ===== 순수 JS ZIP (store, UTF-8 파일명) =====
+const CRC=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC[(c^b[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function zipBlob(files){
+  const enc=new TextEncoder(); const u16=n=>[n&255,(n>>8)&255]; const u32=n=>[n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255];
+  let parts=[],central=[],off=0;
+  for(const f of files){
+    const nb=enc.encode(f.name), data=enc.encode(f.text), crc=crc32(data), sz=data.length;
+    const lh=[].concat(u32(0x04034b50),u16(20),u16(0x0800),u16(0),u16(0),u16(0),u32(crc),u32(sz),u32(sz),u16(nb.length),u16(0));
+    parts.push(Uint8Array.from(lh),nb,data);
+    central.push({nb,crc,sz,off}); off+=lh.length+nb.length+sz;
+  }
+  const cdStart=off; let cd=[],cdSize=0;
+  for(const c of central){
+    const ch=[].concat(u32(0x02014b50),u16(20),u16(20),u16(0x0800),u16(0),u16(0),u16(0),u32(c.crc),u32(c.sz),u32(c.sz),u16(c.nb.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(c.off));
+    cd.push(Uint8Array.from(ch),c.nb); cdSize+=ch.length+c.nb.length;
+  }
+  const end=[].concat(u32(0x06054b50),u16(0),u16(0),u16(central.length),u16(central.length),u32(cdSize),u32(cdStart),u16(0));
+  return new Blob([...parts,...cd,Uint8Array.from(end)],{type:"application/zip"});
+}
+
+function logLines(files){
+  const el=document.getElementById("log"); el.style.display="block";
+  el.textContent="생성될 파일 ("+files.length+"개):\n"+files.map(f=>" • "+f.name).join("\n");
+}
+function preview(){
+  const f=buildFiles();
+  if(!f.length){ alert("입력된 항목이 없습니다. 최소 한 마켓이라도 키를 입력하세요."); return; }
+  logLines(f);
+}
+function generate(){
+  const f=buildFiles();
+  if(!f.length){ alert("입력된 항목이 없습니다. 최소 한 마켓이라도 키를 입력하세요."); return; }
+  const blob=zipBlob(f);
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="webocr_keys.zip";
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  logLines(f);
+  alert(f.length+"개 파일을 webocr_keys.zip 으로 생성했습니다.\n압축을 풀어 %LOCALAPPDATA%\\WebOCR\\key 에 넣으세요.");
+}
+</script>
+</body>
+</html>

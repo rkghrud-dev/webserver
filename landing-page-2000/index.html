@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RK Work Portal</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    --blue:#2563eb; --blue-bg:#e8effd; --blue-tx:#1d4ed8;
+    --green-bg:#e7f6ec; --green-tx:#15803d;
+    --amber-bg:#fef3e2; --amber-tx:#b45309;
+    --red-bg:#fdeaea; --red-tx:#b91c1c;
+    --bg:#f4f6f9; --card:#ffffff; --text:#1f2430; --muted:#6b7280; --hint:#9aa1ad;
+    --border:#e6e8ec; --radius:8px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Pretendard",system-ui,-apple-system,"Segoe UI","Malgun Gothic",sans-serif;font-size:14px;line-height:1.5}
+  button{font-family:inherit;cursor:pointer}
+  .hide{display:none!important}
+  a{color:var(--blue-tx);text-decoration:none}
+
+  .btn{border:1px solid var(--border);background:#fff;color:var(--text);padding:8px 14px;border-radius:var(--radius);font-size:13px}
+  .btn:hover{background:#f7f8fa}
+  .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+  .btn.primary:hover{background:#1d4ed8}
+  .btn.green{background:var(--green-bg);border-color:transparent;color:var(--green-tx)}
+  .btn.block{width:100%}
+  .btn.locked{background:#eef0f3;color:var(--hint);border-color:transparent;cursor:not-allowed}
+
+  .badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border-radius:var(--radius)}
+  .badge.green{background:var(--green-bg);color:var(--green-tx)}
+  .badge.amber{background:var(--amber-bg);color:var(--amber-tx)}
+  .badge.blue{background:var(--blue-bg);color:var(--blue-tx)}
+  .badge.gray{background:#eef0f3;color:var(--muted)}
+
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .login-card{display:flex;width:760px;max-width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .brand{flex:0 0 45%;background:var(--blue);color:#fff;padding:30px 26px;display:flex;flex-direction:column}
+  .brand h1{font-size:21px;font-weight:600;line-height:1.4;margin:24px 0 8px}
+  .brand .sub{font-size:13px;color:rgba(255,255,255,.8);margin-bottom:24px}
+  .feat{display:flex;align-items:center;gap:11px;margin-bottom:14px}
+  .feat .ic{width:32px;height:32px;border-radius:var(--radius);background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:18px}
+  .feat .t{font-size:13px;font-weight:500}
+  .feat .d{font-size:11.5px;color:rgba(255,255,255,.72)}
+  .logo{display:flex;align-items:center;gap:9px}
+  .logo .mk{width:28px;height:28px;border-radius:var(--radius);background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+  .form{flex:1;padding:30px}
+  .form h2{font-size:18px;font-weight:600;margin:0 0 3px}
+  .form .sub{font-size:12.5px;color:var(--muted);margin-bottom:20px}
+  label{display:block;font-size:12px;color:var(--muted);margin:0 0 5px}
+  input{width:100%;height:38px;padding:0 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;margin-bottom:13px;background:#fff;color:var(--text)}
+  input:focus{outline:none;border-color:var(--blue)}
+  .err{font-size:12px;margin:2px 0 10px;min-height:16px}
+  .divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--hint);font-size:11.5px}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--border)}
+  .note{display:flex;gap:6px;font-size:11.5px;color:var(--hint);margin-top:14px;line-height:1.5}
+
+  header.top{display:flex;align-items:center;justify-content:space-between;padding:11px 20px;background:#fff;border-bottom:1px solid var(--border);position:relative}
+  .nav{display:flex;align-items:center;gap:18px}
+  .nav .logo .mk{background:var(--blue);color:#fff}
+  .nav .name{font-size:15px;font-weight:600}
+  .tab{font-size:13px;color:var(--muted);cursor:pointer;padding-bottom:13px;margin-bottom:-12px;border-bottom:2px solid transparent}
+  .tab.active{color:var(--text);border-color:var(--blue)}
+  .userbox{display:flex;align-items:center;gap:8px;position:relative}
+  .chip{display:flex;align-items:center;gap:7px;padding:4px 9px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px}
+  .av{width:22px;height:22px;border-radius:50%;background:var(--blue-bg);color:var(--blue-tx);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+  .menu{position:absolute;top:42px;right:0;width:190px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:5px;z-index:10;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+  .menu .mi{display:flex;align-items:center;gap:8px;font-size:13px;padding:8px 9px;border-radius:6px;cursor:pointer}
+  .menu .mi:hover{background:#f4f6f9}
+  .menu .mt{font-size:11px;color:var(--hint);padding:6px 9px 3px}
+
+  main{max-width:880px;margin:0 auto;padding:22px 20px}
+  .ptitle{font-size:18px;font-weight:600}
+  .psub{font-size:13px;color:var(--muted);margin-top:2px}
+  .banner{display:flex;align-items:center;gap:9px;padding:11px 13px;border-radius:var(--radius);font-size:12.5px;margin:14px 0}
+  .banner.amber{background:var(--amber-bg);color:var(--amber-tx)}
+
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+  .card .ch{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .card .ci{width:34px;height:34px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:19px;background:var(--blue-bg);color:var(--blue-tx)}
+  .card .ci.amber{background:var(--amber-bg);color:var(--amber-tx)}
+  .card .ct{font-size:15px;font-weight:600}
+  .card .cd{font-size:12.5px;color:var(--muted);line-height:1.5;min-height:38px}
+  .card .row{display:flex;gap:8px;margin-top:12px}
+  .ph{border:1px dashed var(--border);border-radius:var(--radius);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--hint);min-height:120px;gap:5px;font-size:12.5px}
+
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+  .pill{font-size:12px;padding:5px 11px;border-radius:var(--radius);border:1px solid var(--border);color:var(--muted);background:#fff;cursor:pointer}
+  .pill.active{background:var(--blue);border-color:var(--blue);color:#fff}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  th{text-align:left;font-size:11.5px;font-weight:500;color:var(--hint);padding:10px 14px;background:var(--bg)}
+  td{padding:11px 14px;border-top:1px solid var(--border);font-size:13px}
+  td .em{font-size:11px;color:var(--hint)}
+  .actions{text-align:right;white-space:nowrap}
+  .actions .btn{padding:5px 10px;font-size:11.5px;margin-left:5px}
+
+  @media(max-width:640px){
+    .login-card{flex-direction:column} .brand{flex:none}
+    .grid{grid-template-columns:1fr} main{padding:16px}
+  }
+</style>
+</head>
+<body>
+
+<div id="view-login" class="login-wrap hide">
+  <div class="login-card">
+    <div class="brand">
+      <div class="logo"><div class="mk">RK</div><span style="font-size:16px;font-weight:600">RK Work Portal</span></div>
+      <h1>업무 프로그램을<br>한 곳에서 시작하세요</h1>
+      <div class="sub">로그인하면 승인된 업무 카드로 바로 이동합니다.</div>
+      <div class="feat"><div class="ic"><i class="ti ti-scan"></i></div><div><div class="t">WebOCR</div><div class="d">상품 이미지 OCR 처리</div></div></div>
+      <div class="feat"><div class="ic"><i class="ti ti-truck-delivery"></i></div><div><div class="t">CafeShipment</div><div class="d">주문 수집·출고 준비</div></div></div>
+      <div class="feat"><div class="ic"><i class="ti ti-key"></i></div><div><div class="t">키 설정</div><div class="d">마켓 API 키 서버 보관</div></div></div>
+      <div style="margin-top:auto;display:flex;gap:7px;font-size:11.5px;color:rgba(255,255,255,.72);padding-top:20px"><i class="ti ti-lock"></i>API 키는 개인 PC가 아닌 서버에 안전하게 보관됩니다</div>
+    </div>
+    <div class="form">
+      <h2 id="form-title">로그인</h2>
+      <div class="sub" id="form-sub">계정 정보를 입력해 주세요</div>
+      <div id="reg-fields" class="hide">
+        <label>이름</label><input id="f-name" placeholder="홍길동">
+        <label>조직명</label><input id="f-org" placeholder="회사/쇼핑몰 이름">
+      </div>
+      <label>이메일</label><input id="f-email" type="email" placeholder="name@company.com">
+      <label>비밀번호</label><input id="f-pw" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()">
+      <div class="err" id="f-err"></div>
+      <button class="btn primary block" id="f-submit" onclick="submitAuth()">로그인</button>
+      <div class="divider">또는</div>
+      <button class="btn block" id="f-toggle" onclick="toggleMode()"><i class="ti ti-user-plus"></i> 회원가입</button>
+      <div class="note"><i class="ti ti-info-circle"></i><span>가입 후 관리자 승인이 완료되면 업무 프로그램을 이용할 수 있습니다.</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="view-app" class="hide">
+  <header class="top">
+    <div class="nav">
+      <div class="logo"><div class="mk">RK</div><span class="name">RK Work Portal</span></div>
+      <span class="tab active" id="tab-home" onclick="go('home')">홈</span>
+      <span class="tab hide" id="tab-admin" onclick="go('admin')">회원 승인 관리</span>
+    </div>
+    <div class="userbox">
+      <button class="btn hide" id="admin-btn" onclick="toggleAdminMenu(event)" style="display:flex;align-items:center;gap:6px;font-size:13px"><i class="ti ti-shield-lock"></i>관리자<i class="ti ti-chevron-down"></i></button>
+      <div class="chip"><div class="av" id="u-av">U</div><span id="u-name">사용자</span><span id="u-badge" class="badge"></span></div>
+      <button class="btn" onclick="logout()" style="font-size:12px;padding:6px 10px">로그아웃</button>
+      <div class="menu hide" id="admin-menu">
+        <div class="mt">관리자 메뉴</div>
+        <div class="mi" onclick="go('admin')"><i class="ti ti-user-check" style="color:var(--blue-tx)"></i>회원 승인 관리</div>
+        <div class="mi"><i class="ti ti-adjustments"></i>회원별 권한 설정</div>
+        <div class="mi"><i class="ti ti-download"></i>다운로드 권한 설정</div>
+      </div>
+    </div>
+  </header>
+
+  <main id="page-home">
+    <div class="ptitle">작업 홈</div>
+    <div class="psub" id="home-sub">필요한 업무를 선택해서 시작하세요</div>
+    <div class="banner amber hide" id="pending-banner"><i class="ti ti-clock-hour-4"></i><span>관리자 승인을 기다리고 있습니다. 승인 완료 후 다운로드·키 저장·주문 수집을 사용할 수 있습니다.</span></div>
+    <div class="grid" id="cards"></div>
+  </main>
+
+  <main id="page-admin" class="hide">
+    <div class="ptitle">회원 승인 관리</div>
+    <div class="psub">가입 요청을 검토하고 권한을 관리합니다</div>
+    <div class="filters" id="filters"></div>
+    <table><thead><tr><th style="width:42%">회원</th><th style="width:18%">가입일</th><th style="width:14%">상태</th><th style="width:26%;text-align:right">작업</th></tr></thead>
+    <tbody id="members"></tbody></table>
+  </main>
+</div>
+
+<script>
+let ME=null, MODE='login', FILTER='pending';
+const $=id=>document.getElementById(id);
+async function api(path,opts){const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'}},opts||{}));let d={};try{d=await r.json()}catch(e){}if(!r.ok)throw new Error(d.detail||'오류가 발생했습니다');return d;}
+function show(view){$('view-login').classList.toggle('hide',view!=='login');$('view-app').classList.toggle('hide',view!=='app');}
+function initial(s){return (s||'U').trim().charAt(0).toUpperCase();}
+
+async function boot(){try{const d=await api('/api/me');ME=d.user;}catch(e){ME=null;}if(ME){renderApp();show('app');}else{show('login');}}
+
+function toggleMode(){MODE=MODE==='login'?'register':'login';
+  $('reg-fields').classList.toggle('hide',MODE!=='register');
+  $('form-title').textContent=MODE==='login'?'로그인':'회원가입';
+  $('form-sub').textContent=MODE==='login'?'계정 정보를 입력해 주세요':'가입 후 관리자 승인이 필요합니다';
+  $('f-submit').textContent=MODE==='login'?'로그인':'가입하기';
+  $('f-toggle').innerHTML=MODE==='login'?'<i class="ti ti-user-plus"></i> 회원가입':'<i class="ti ti-arrow-left"></i> 로그인으로';
+  $('f-err').textContent='';
+}
+
+async function submitAuth(){
+  $('f-err').textContent='';
+  const email=$('f-email').value.trim(),pw=$('f-pw').value;
+  try{
+    if(MODE==='register'){
+      await api('/api/register',{method:'POST',body:JSON.stringify({email,password:pw,name:$('f-name').value.trim(),org:$('f-org').value.trim()})});
+      $('f-err').style.color='var(--green-tx)';$('f-err').textContent='가입 완료! 관리자 승인 후 로그인하세요.';
+      MODE='register';toggleMode();$('f-email').value=email;return;
+    }
+    const d=await api('/api/login',{method:'POST',body:JSON.stringify({email,password:pw})});
+    ME=d.user;renderApp();show('app');
+  }catch(e){$('f-err').style.color='var(--red-tx)';$('f-err').textContent=e.message;}
+}
+
+async function logout(){try{await api('/api/logout',{method:'POST'});}catch(e){}ME=null;location.reload();}
+
+function go(page){
+  $('page-home').classList.toggle('hide',page!=='home');
+  $('page-admin').classList.toggle('hide',page!=='admin');
+  $('tab-home').classList.toggle('active',page==='home');
+  $('tab-admin').classList.toggle('active',page==='admin');
+  $('admin-menu').classList.add('hide');
+  if(page==='admin')loadMembers();
+}
+function toggleAdminMenu(e){e.stopPropagation();$('admin-menu').classList.toggle('hide');}
+document.addEventListener('click',()=>{const m=$('admin-menu');if(m)m.classList.add('hide');});
+
+function renderApp(){
+  $('u-av').textContent=initial(ME.name||ME.email);
+  $('u-name').textContent=ME.name||ME.email;
+  const b=$('u-badge');
+  if(ME.isAdmin){b.className='badge blue';b.textContent='관리자';}
+  else if(ME.active){b.className='badge green';b.textContent='승인됨';}
+  else{b.className='badge amber';b.textContent='승인 대기';}
+  $('tab-admin').classList.toggle('hide',!ME.isAdmin);
+  $('admin-btn').classList.toggle('hide',!ME.isAdmin);
+  $('pending-banner').classList.toggle('hide',ME.active);
+  $('home-sub').textContent=ME.active?'필요한 업무를 선택해서 시작하세요':'설명은 볼 수 있고, 실행 기능은 승인 후 열립니다';
+  renderCards();go('home');
+}
+
+function lockBtn(label){return `<div class="btn locked" style="flex:1;text-align:center"><i class="ti ti-lock"></i> ${label}</div>`;}
+function renderCards(){
+  const on=ME.active, badge=on?'<span class="badge green">사용 가능</span>':'<span class="badge amber">승인 후 가능</span>';
+  const cards=[
+    {ic:'ti-scan',cls:'',t:'WebOCR',d:'상품 이미지와 마켓 정보를 처리하는 OCR 기반 업무 프로그램',
+     row:`<button class="btn" style="flex:1">다운로드 페이지</button>`+(on?`<button class="btn primary" style="flex:1"><i class="ti ti-download"></i> EXE 받기</button>`:lockBtn('EXE 받기'))},
+    {ic:'ti-truck-delivery',cls:'',t:'CafeShipment',d:'Cafe24 주문·배송 정보를 수집하고 출고를 준비하는 프로그램',
+     row:(on?`<button class="btn primary" style="flex:1"><i class="ti ti-player-play"></i> 주문 수집 시작</button>`:lockBtn('주문 수집 시작'))+`<button class="btn">내역</button><button class="btn">설정</button>`},
+    {ic:'ti-key',cls:'amber',t:'키 설정',d:'쿠팡·Cafe24 등 마켓 API 키를 서버에 안전하게 저장합니다',
+     row:(on?`<button class="btn" style="flex:1">키 설정 열기</button>`:lockBtn('키 설정 열기'))+`<button class="btn"><i class="ti ti-plus"></i> 마켓 추가</button>`},
+  ];
+  $('cards').innerHTML=cards.map(c=>`<div class="card"><div class="ch"><div class="ci ${c.cls}"><i class="ti ${c.ic}"></i></div><span class="ct">${c.t}</span><span style="margin-left:auto">${badge}</span></div><div class="cd">${c.d}</div><div class="row">${c.row}</div></div>`).join('')
+    +`<div class="ph"><i class="ti ti-plus" style="font-size:22px"></i><span>업무 추가 예정</span></div>`;
+}
+
+async function loadMembers(){
+  let d;try{d=await api('/api/admin/members'+(FILTER?('?status='+FILTER):''));}catch(e){return;}
+  const c=d.counts;
+  $('filters').innerHTML=[['pending','승인 대기',c.pending],['','전체',c.total],['active','승인됨',c.active],['disabled','비활성',c.disabled]]
+    .map(([k,l,n])=>`<span class="pill ${FILTER===k?'active':''}" onclick="setFilter('${k}')">${l} ${n}</span>`).join('');
+  const badge=s=>s==='active'?'<span class="badge green">승인됨</span>':s==='pending'?'<span class="badge amber">대기</span>':'<span class="badge gray">비활성</span>';
+  const acts=m=>m.status==='pending'?`<button class="btn green" onclick="act(${m.id},'approve')">승인</button><button class="btn" onclick="act(${m.id},'reject')">거절</button>`
+    :m.status==='active'&&!m.isAdmin?`<button class="btn" onclick="act(${m.id},'disable')">비활성화</button>`
+    :m.status==='disabled'?`<button class="btn" onclick="act(${m.id},'restore')">복구</button>`:'<span style="color:var(--hint);font-size:12px">—</span>';
+  $('members').innerHTML=d.members.map(m=>`<tr><td>${m.name||'(이름없음)'} ${m.isAdmin?'<span class="badge blue">관리자</span>':''}<div class="em">${m.email}</div></td><td style="color:var(--muted)">${(m.createdAt||'').slice(5,10)}</td><td>${badge(m.status)}</td><td class="actions">${acts(m)}</td></tr>`).join('')
+    ||'<tr><td colspan="4" style="text-align:center;color:var(--hint);padding:24px">해당 상태의 회원이 없습니다.</td></tr>';
+}
+function setFilter(k){FILTER=k;loadMembers();}
+async function act(id,what){try{await api('/api/admin/members/'+id+'/'+what,{method:'POST'});loadMembers();}catch(e){alert(e.message);}}
+
+boot();
+</script>
+</body>
+</html>

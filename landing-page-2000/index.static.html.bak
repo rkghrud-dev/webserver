@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RK Work Portal</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #eef2f7;
+      --surface: #ffffff;
+      --ink: #172033;
+      --muted: #657184;
+      --line: #dce3ee;
+      --blue: #2457d6;
+      --green: #178b61;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, "Malgun Gothic", sans-serif;
+      background:
+        linear-gradient(90deg, rgba(238, 242, 247, 0.96), rgba(238, 242, 247, 0.76)),
+        url("https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1800&q=80") center / cover fixed;
+      color: var(--ink);
+    }
+
+    .page {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    header {
+      min-height: 68px;
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+    }
+
+    .mark {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--blue);
+      color: white;
+      font-weight: 900;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(340px, 430px);
+      align-items: center;
+      gap: 42px;
+      padding: 34px 0 64px;
+    }
+
+    h1 {
+      max-width: 680px;
+      margin: 0 0 16px;
+      font-size: clamp(38px, 6vw, 72px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 18px;
+    }
+
+    .login {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 24px 70px rgba(23, 32, 51, 0.16);
+    }
+
+    .login h2 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    form {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    input {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid #cfd7e6;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    button,
+    .btn {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 14px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--ink);
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    button {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: white;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .modules {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .module {
+      min-height: 118px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .module strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .module span {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .ok {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 30px;
+      padding: 0 10px;
+      border-radius: 8px;
+      background: #e7f6ef;
+      color: var(--green);
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 18px;
+    }
+
+    @media (max-width: 860px) {
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 16px 0;
+      }
+
+      nav {
+        flex-wrap: wrap;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
+
+      .modules {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="brand">
+        <div class="mark">RK</div>
+        <span>RK Work Portal</span>
+      </div>
+      <nav>
+        <span>WebOCR</span>
+        <span>CafeShipment</span>
+        <span>Key Manager</span>
+      </nav>
+    </header>
+
+    <main>
+      <section>
+        <div class="ok">141.164.40.19 online</div>
+        <h1>로그인 후 작업 메뉴로 들어갑니다.</h1>
+        <p>
+          회원은 WebOCR 프로그램, CafeShipment 프로그램, 키 설정 페이지로 나뉘어 들어갑니다.
+          관리자 아이디로 로그인하면 회원 권한 승인 화면이 열립니다.
+        </p>
+        <div class="modules">
+          <div class="module"><strong>WebOCR</strong><span>마켓별 OCR 업무와 키 설정 연결</span></div>
+          <div class="module"><strong>CafeShipment</strong><span>Cafe24 배송/출고 자동화 공간</span></div>
+          <div class="module"><strong>키 설정</strong><span>API 키 저장과 승인 기반 관리</span></div>
+        </div>
+      </section>
+
+      <section class="login">
+        <h2>로그인</h2>
+        <p>가입한 이름으로 로그인하세요. 일반 회원 비밀번호는 아직 사용하지 않습니다.</p>
+        <form method="post" action="http://141.164.40.19:4000/portal/login">
+          <label>아이디 또는 이름
+            <input name="login_id" autocomplete="username" required>
+          </label>
+          <label>비밀번호
+            <input name="password" type="password" autocomplete="current-password" placeholder="관리자만 입력">
+          </label>
+          <button type="submit">로그인</button>
+        </form>
+        <div class="actions">
+          <a class="btn" href="http://141.164.40.19:4000/portal/signup">회원가입</a>
+          <a class="btn" href="http://141.164.40.19:4000/admin/login">관리자</a>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
