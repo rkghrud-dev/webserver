@@ -139,16 +139,22 @@
       <div class="logo"><div class="mk">RK</div><span class="name">RK Work Portal</span></div>
       <span class="tab active" id="tab-home" onclick="go('home')">홈</span>
       <span class="tab hide" id="tab-admin" onclick="go('admin')">회원 승인 관리</span>
+      <span class="tab hide" id="tab-log" onclick="go('adminlog')">접속 기록</span>
     </div>
     <div class="userbox">
       <button class="btn hide" id="admin-btn" onclick="toggleAdminMenu(event)" style="display:flex;align-items:center;gap:6px;font-size:13px"><i class="ti ti-shield-lock"></i>관리자<i class="ti ti-chevron-down"></i></button>
-      <div class="chip"><div class="av" id="u-av">U</div><span id="u-name">사용자</span><span id="u-badge" class="badge"></span></div>
-      <button class="btn" onclick="logout()" style="font-size:12px;padding:6px 10px">로그아웃</button>
+      <div class="chip" id="user-chip" onclick="toggleUserMenu(event)" style="cursor:pointer"><div class="av" id="u-av">U</div><span id="u-name">사용자</span><span id="u-badge" class="badge"></span><i class="ti ti-chevron-down" style="font-size:13px;color:var(--hint)"></i></div>
       <div class="menu hide" id="admin-menu">
         <div class="mt">관리자 메뉴</div>
         <div class="mi" onclick="go('admin')"><i class="ti ti-user-check" style="color:var(--blue-tx)"></i>회원 승인 관리</div>
+        <div class="mi" onclick="go('adminlog')"><i class="ti ti-clock"></i>접속 기록</div>
         <div class="mi"><i class="ti ti-adjustments"></i>회원별 권한 설정</div>
         <div class="mi"><i class="ti ti-download"></i>다운로드 권한 설정</div>
+      </div>
+      <div class="menu hide" id="user-menu">
+        <div class="mt">내 계정</div>
+        <div class="mi" onclick="go('profile')"><i class="ti ti-user-edit"></i>내 정보 변경</div>
+        <div class="mi" onclick="logout()"><i class="ti ti-logout"></i>로그아웃</div>
       </div>
     </div>
   </header>
@@ -166,6 +172,55 @@
     <div class="filters" id="filters"></div>
     <table><thead><tr><th style="width:42%">회원</th><th style="width:18%">가입일</th><th style="width:14%">상태</th><th style="width:26%;text-align:right">작업</th></tr></thead>
     <tbody id="members"></tbody></table>
+  </main>
+
+  <main id="page-adminlog" class="hide">
+    <div class="ptitle">접속 기록</div>
+    <div class="psub">회원이 언제 로그인하고 종료했는지 확인합니다</div>
+    <table style="margin-top:14px"><thead><tr><th style="width:34%">회원</th><th style="width:24%">접속 시각</th><th style="width:24%">종료 시각</th><th style="width:18%;text-align:right">사용 시간</th></tr></thead>
+    <tbody id="logrows"></tbody></table>
+  </main>
+
+  <main id="page-profile" class="hide">
+    <div class="ptitle">내 정보 변경</div>
+    <div class="psub">이름·조직과 비밀번호를 변경할 수 있습니다</div>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px;max-width:720px">
+      <div class="card">
+        <div class="ct" style="margin-bottom:12px">기본 정보</div>
+        <label>이메일</label><input id="p-email" disabled style="opacity:.7">
+        <label>이름</label><input id="p-name">
+        <label>조직명</label><input id="p-org">
+        <div class="err" id="p-msg"></div>
+        <button class="btn primary" onclick="saveProfile()">저장</button>
+      </div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:12px">비밀번호 변경</div>
+        <label>현재 비밀번호</label><input id="p-cur" type="password">
+        <label>새 비밀번호</label><input id="p-new" type="password">
+        <div class="err" id="p-pwmsg"></div>
+        <button class="btn primary" onclick="changePw()">비밀번호 변경</button>
+      </div>
+    </div>
+  </main>
+
+  <main id="page-markets" class="hide">
+    <div class="ptitle">내 마켓</div>
+    <div class="psub">한 계정으로 여러 쇼핑몰을 운영할 수 있습니다. 마켓을 추가하세요</div>
+    <div class="card" style="max-width:720px;margin-top:14px">
+      <div class="ct" style="margin-bottom:12px">마켓 추가</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:160px"><label>마켓 이름</label><input id="m-alias" placeholder="예: 홈런몰" style="margin-bottom:0"></div>
+        <div style="width:150px"><label>마켓 종류</label>
+          <select id="m-type" style="width:100%;height:38px;border:1px solid var(--border);border-radius:var(--radius);padding:0 10px;background:#fff;color:var(--text)">
+            <option value="cafe24">Cafe24</option><option value="coupang">쿠팡</option><option value="naver">네이버</option>
+            <option value="11st">11번가</option><option value="lotteon">롯데ON</option><option value="esm">ESM(G/옥션)</option><option value="other">기타</option>
+          </select>
+        </div>
+        <button class="btn primary" onclick="addMarket()" style="height:38px"><i class="ti ti-plus"></i> 추가</button>
+      </div>
+      <div class="err" id="m-msg"></div>
+    </div>
+    <div id="market-list" style="max-width:720px;margin-top:14px"></div>
   </main>
 </div>
 
@@ -203,16 +258,21 @@ async function submitAuth(){
 
 async function logout(){try{await api('/api/logout',{method:'POST'});}catch(e){}ME=null;location.reload();}
 
+const PAGES=['home','admin','adminlog','profile','markets'];
 function go(page){
-  $('page-home').classList.toggle('hide',page!=='home');
-  $('page-admin').classList.toggle('hide',page!=='admin');
+  PAGES.forEach(p=>$('page-'+p)&&$('page-'+p).classList.toggle('hide',p!==page));
   $('tab-home').classList.toggle('active',page==='home');
   $('tab-admin').classList.toggle('active',page==='admin');
-  $('admin-menu').classList.add('hide');
+  $('tab-log').classList.toggle('active',page==='adminlog');
+  $('admin-menu').classList.add('hide');$('user-menu').classList.add('hide');
   if(page==='admin')loadMembers();
+  if(page==='adminlog')loadAccessLog();
+  if(page==='profile')loadProfile();
+  if(page==='markets')loadMarkets();
 }
-function toggleAdminMenu(e){e.stopPropagation();$('admin-menu').classList.toggle('hide');}
-document.addEventListener('click',()=>{const m=$('admin-menu');if(m)m.classList.add('hide');});
+function toggleAdminMenu(e){e.stopPropagation();$('user-menu').classList.add('hide');$('admin-menu').classList.toggle('hide');}
+function toggleUserMenu(e){e.stopPropagation();$('admin-menu').classList.add('hide');$('user-menu').classList.toggle('hide');}
+document.addEventListener('click',()=>{['admin-menu','user-menu'].forEach(id=>{const m=$(id);if(m)m.classList.add('hide');});});
 
 function renderApp(){
   $('u-av').textContent=initial(ME.name||ME.email);
@@ -222,6 +282,7 @@ function renderApp(){
   else if(ME.active){b.className='badge green';b.textContent='승인됨';}
   else{b.className='badge amber';b.textContent='승인 대기';}
   $('tab-admin').classList.toggle('hide',!ME.isAdmin);
+  $('tab-log').classList.toggle('hide',!ME.isAdmin);
   $('admin-btn').classList.toggle('hide',!ME.isAdmin);
   $('pending-banner').classList.toggle('hide',ME.active);
   $('home-sub').textContent=ME.active?'필요한 업무를 선택해서 시작하세요':'설명은 볼 수 있고, 실행 기능은 승인 후 열립니다';
@@ -237,7 +298,7 @@ function renderCards(){
     {ic:'ti-truck-delivery',cls:'',t:'CafeShipment',d:'Cafe24 주문·배송 정보를 수집하고 출고를 준비하는 프로그램',
      row:(on?`<button class="btn primary" style="flex:1"><i class="ti ti-player-play"></i> 주문 수집 시작</button>`:lockBtn('주문 수집 시작'))+`<button class="btn">내역</button><button class="btn">설정</button>`},
     {ic:'ti-key',cls:'amber',t:'키 설정',d:'쿠팡·Cafe24 등 마켓 API 키를 서버에 안전하게 저장합니다',
-     row:(on?`<button class="btn" style="flex:1">키 설정 열기</button>`:lockBtn('키 설정 열기'))+`<button class="btn"><i class="ti ti-plus"></i> 마켓 추가</button>`},
+     row:(on?`<button class="btn" style="flex:1" onclick="go('markets')">내 마켓 / 키</button>`:lockBtn('키 설정 열기'))+`<button class="btn" ${on?"onclick=\"go('markets')\"":'disabled'}><i class="ti ti-plus"></i> 마켓 추가</button>`},
   ];
   $('cards').innerHTML=cards.map(c=>`<div class="card"><div class="ch"><div class="ci ${c.cls}"><i class="ti ${c.ic}"></i></div><span class="ct">${c.t}</span><span style="margin-left:auto">${badge}</span></div><div class="cd">${c.d}</div><div class="row">${c.row}</div></div>`).join('')
     +`<div class="ph"><i class="ti ti-plus" style="font-size:22px"></i><span>업무 추가 예정</span></div>`;
@@ -257,6 +318,37 @@ async function loadMembers(){
 }
 function setFilter(k){FILTER=k;loadMembers();}
 async function act(id,what){try{await api('/api/admin/members/'+id+'/'+what,{method:'POST'});loadMembers();}catch(e){alert(e.message);}}
+
+// 접속 기록
+function tShort(t){return t?t.slice(5,19):'-';}
+function durText(login,logout){
+  if(!logout)return '<span style="color:var(--green-tx)">접속 중</span>';
+  const a=new Date(login.replace(' ','T')+'Z'),b=new Date(logout.replace(' ','T')+'Z');
+  let s=Math.max(0,Math.round((b-a)/1000));const h=Math.floor(s/3600);s%=3600;const m=Math.floor(s/60);
+  return (h?h+'시간 ':'')+m+'분';
+}
+async function loadAccessLog(){
+  let d;try{d=await api('/api/admin/access-log');}catch(e){return;}
+  $('logrows').innerHTML=d.events.map(e=>`<tr><td>${e.name||'(이름없음)'}<div class="em">${e.email||''}</div></td><td style="color:var(--muted)">${tShort(e.loginAt)}</td><td style="color:var(--muted)">${e.logoutAt?tShort(e.logoutAt):'-'}</td><td class="actions">${durText(e.loginAt,e.logoutAt)}</td></tr>`).join('')
+    ||'<tr><td colspan="4" style="text-align:center;color:var(--hint);padding:24px">접속 기록이 없습니다.</td></tr>';
+}
+
+// 내 정보
+function updateChip(){$('u-name').textContent=ME.name||ME.email;$('u-av').textContent=initial(ME.name||ME.email);}
+function loadProfile(){$('p-email').value=ME.email;$('p-name').value=ME.name||'';$('p-org').value=ME.org||'';$('p-msg').textContent='';$('p-pwmsg').textContent='';}
+async function saveProfile(){try{const d=await api('/api/profile',{method:'POST',body:JSON.stringify({name:$('p-name').value.trim(),org:$('p-org').value.trim()})});ME=d.user;updateChip();$('p-msg').style.color='var(--green-tx)';$('p-msg').textContent='저장되었습니다.';}catch(e){$('p-msg').style.color='var(--red-tx)';$('p-msg').textContent=e.message;}}
+async function changePw(){try{await api('/api/change-password',{method:'POST',body:JSON.stringify({currentPassword:$('p-cur').value,newPassword:$('p-new').value})});$('p-cur').value='';$('p-new').value='';$('p-pwmsg').style.color='var(--green-tx)';$('p-pwmsg').textContent='비밀번호가 변경되었습니다.';}catch(e){$('p-pwmsg').style.color='var(--red-tx)';$('p-pwmsg').textContent=e.message;}}
+
+// 마켓 (1인 다몰)
+const MKT={cafe24:'Cafe24',coupang:'쿠팡',naver:'네이버','11st':'11번가',lotteon:'롯데ON',esm:'ESM',other:'기타'};
+async function loadMarkets(){
+  let d;try{d=await api('/api/markets');}catch(e){return;}
+  $('market-list').innerHTML=d.markets.length
+    ?('<div class="card" style="padding:6px 0"><table style="border:none">'+d.markets.map(m=>`<tr><td style="padding:10px 16px"><b>${m.alias}</b> <span class="badge gray">${MKT[m.type]||m.type}</span></td><td class="actions" style="padding-right:16px"><button class="btn" onclick="delMarket(${m.id})"><i class="ti ti-trash"></i> 삭제</button></td></tr>`).join('')+'</table></div>')
+    :'<div class="ph" style="min-height:90px"><i class="ti ti-building-store" style="font-size:22px"></i><span>아직 등록된 마켓이 없습니다</span></div>';
+}
+async function addMarket(){const alias=$('m-alias').value.trim();if(!alias){$('m-msg').style.color='var(--red-tx)';$('m-msg').textContent='마켓 이름을 입력하세요.';return;}try{await api('/api/markets',{method:'POST',body:JSON.stringify({alias,market_type:$('m-type').value})});$('m-alias').value='';$('m-msg').textContent='';loadMarkets();}catch(e){$('m-msg').style.color='var(--red-tx)';$('m-msg').textContent=e.message;}}
+async function delMarket(id){if(!confirm('이 마켓을 삭제할까요?'))return;try{await api('/api/markets/'+id,{method:'DELETE'});loadMarkets();}catch(e){alert(e.message);}}
 
 boot();
 </script>

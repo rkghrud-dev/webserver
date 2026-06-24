@@ -62,6 +62,27 @@ def init_db() -> None:
                 created_at TEXT NOT NULL
             )"""
         )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS login_events(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                email TEXT,
+                login_at TEXT NOT NULL,
+                logout_at TEXT
+            )"""
+        )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS markets(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                alias TEXT NOT NULL,
+                market_type TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )"""
+        )
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(sessions)").fetchall()]
+        if "event_id" not in cols:
+            conn.execute("ALTER TABLE sessions ADD COLUMN event_id INTEGER")
         conn.commit()
         if ADMIN_EMAIL and ADMIN_PASSWORD:
             row = conn.execute("SELECT id FROM users WHERE email=?", (ADMIN_EMAIL,)).fetchone()
@@ -139,6 +160,21 @@ class LoginBody(BaseModel):
     password: str
 
 
+class ProfileBody(BaseModel):
+    name: str = ""
+    org: str = ""
+
+
+class PasswordBody(BaseModel):
+    currentPassword: str
+    newPassword: str
+
+
+class MarketBody(BaseModel):
+    alias: str
+    market_type: str
+
+
 # ── 라우트 ──
 @app.on_event("startup")
 def _startup():
@@ -183,7 +219,8 @@ def login(body: LoginBody, response: Response):
         if u["status"] == "disabled":
             raise HTTPException(status_code=403, detail="비활성화된 계정입니다.")
         token = secrets.token_urlsafe(32)
-        conn.execute("INSERT INTO sessions(token,user_id,created_at) VALUES(?,?,?)", (token, u["id"], now()))
+        ev = conn.execute("INSERT INTO login_events(user_id,email,login_at) VALUES(?,?,?)", (u["id"], u["email"], now()))
+        conn.execute("INSERT INTO sessions(token,user_id,created_at,event_id) VALUES(?,?,?,?)", (token, u["id"], now(), ev.lastrowid))
         conn.commit()
     response.set_cookie("sid", token, httponly=True, samesite="lax", max_age=60 * 60 * 24 * 7)
     return {"ok": True, "user": user_public(u)}
@@ -194,6 +231,9 @@ def logout(request: Request, response: Response):
     token = request.cookies.get("sid")
     if token:
         with db() as conn:
+            row = conn.execute("SELECT event_id FROM sessions WHERE token=?", (token,)).fetchone()
+            if row and row["event_id"]:
+                conn.execute("UPDATE login_events SET logout_at=? WHERE id=? AND logout_at IS NULL", (now(), row["event_id"]))
             conn.execute("DELETE FROM sessions WHERE token=?", (token,))
             conn.commit()
     response.delete_cookie("sid")
@@ -261,3 +301,77 @@ def disable(user_id: int, request: Request):
 @app.post("/api/admin/members/{user_id}/restore")
 def restore(user_id: int, request: Request):
     return _set_status(request, user_id, "active")
+
+
+# ── 회원정보 변경 ──
+@app.post("/api/profile")
+def update_profile(body: ProfileBody, request: Request):
+    u = require_user(request)
+    with db() as conn:
+        conn.execute("UPDATE users SET name=?, org=? WHERE id=?", (body.name.strip(), body.org.strip(), u["id"]))
+        conn.commit()
+        u = conn.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
+    return {"ok": True, "user": user_public(u)}
+
+
+@app.post("/api/change-password")
+def change_password(body: PasswordBody, request: Request):
+    u = require_user(request)
+    if not verify_pw(body.currentPassword, u["pw_hash"]):
+        raise HTTPException(status_code=400, detail="현재 비밀번호가 올바르지 않습니다.")
+    if len(body.newPassword) < 4:
+        raise HTTPException(status_code=400, detail="새 비밀번호가 너무 짧습니다.")
+    with db() as conn:
+        conn.execute("UPDATE users SET pw_hash=? WHERE id=?", (hash_pw(body.newPassword), u["id"]))
+        conn.commit()
+    return {"ok": True}
+
+
+# ── 마켓(1인 다(多)몰) ──
+@app.get("/api/markets")
+def list_markets(request: Request):
+    u = require_user(request)
+    with db() as conn:
+        rows = conn.execute("SELECT * FROM markets WHERE user_id=? ORDER BY created_at", (u["id"],)).fetchall()
+    return {"ok": True, "markets": [
+        {"id": r["id"], "alias": r["alias"], "type": r["market_type"], "createdAt": r["created_at"]} for r in rows]}
+
+
+@app.post("/api/markets")
+def add_market(body: MarketBody, request: Request):
+    u = require_user(request)
+    if not u["status"] == "active" and not u["is_admin"]:
+        raise HTTPException(status_code=403, detail="승인 후 마켓을 추가할 수 있습니다.")
+    if not body.alias.strip() or not body.market_type.strip():
+        raise HTTPException(status_code=400, detail="마켓 이름과 종류를 입력하세요.")
+    with db() as conn:
+        conn.execute("INSERT INTO markets(user_id,alias,market_type,created_at) VALUES(?,?,?,?)",
+                     (u["id"], body.alias.strip(), body.market_type.strip(), now()))
+        conn.commit()
+    return {"ok": True}
+
+
+@app.delete("/api/markets/{market_id}")
+def delete_market(market_id: int, request: Request):
+    u = require_user(request)
+    with db() as conn:
+        m = conn.execute("SELECT user_id FROM markets WHERE id=?", (market_id,)).fetchone()
+        if not m or m["user_id"] != u["id"]:
+            raise HTTPException(status_code=404, detail="마켓을 찾을 수 없습니다.")
+        conn.execute("DELETE FROM markets WHERE id=?", (market_id,))
+        conn.commit()
+    return {"ok": True}
+
+
+# ── 관리자: 접속 기록 ──
+@app.get("/api/admin/access-log")
+def access_log(request: Request, limit: int = 100):
+    require_admin(request)
+    with db() as conn:
+        rows = conn.execute(
+            """SELECT e.id, e.email, e.login_at, e.logout_at, u.name
+               FROM login_events e LEFT JOIN users u ON u.id=e.user_id
+               ORDER BY e.login_at DESC LIMIT ?""", (max(1, min(limit, 500)),)).fetchall()
+    return {"ok": True, "events": [
+        {"id": r["id"], "name": r["name"], "email": r["email"],
+         "loginAt": r["login_at"], "logoutAt": r["logout_at"]} for r in rows]}
