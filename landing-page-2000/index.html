@@ -133,8 +133,10 @@
   .checkrow input{width:16px;height:16px;margin:0}
   .export-summary{font-size:12.5px;color:var(--muted);line-height:1.6;margin-top:10px;white-space:pre-line}
   .code-register-wrap{max-height:330px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}
-  .code-register-wrap table{border:none;border-radius:0}
-  .code-register-wrap input{height:30px;margin:0}
+  .code-register-wrap table{border:none;border-radius:0;table-layout:fixed;min-width:760px}
+  .code-register-wrap th,.code-register-wrap td{padding:7px 8px}
+  .code-register-wrap input{height:32px;margin:0;font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+  .code-product-name{font-size:11.5px;line-height:1.35;color:var(--text);white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
   @media(max-width:640px){
     .login-card{flex-direction:column} .brand{flex:none}
@@ -379,10 +381,10 @@
       <div class="code-register-wrap">
         <table>
           <thead><tr>
-            <th style="width:40%">공급사상품명</th>
-            <th style="width:20%">옵션</th>
+            <th style="width:38%">공급사상품명</th>
+            <th style="width:18%">옵션</th>
             <th style="width:16%">기본코드</th>
-            <th style="width:24%">상품코드 입력</th>
+            <th style="width:28%">상품코드 입력</th>
           </tr></thead>
           <tbody id="code-register-rows"></tbody>
         </table>
@@ -558,7 +560,7 @@ async function runShipExportCopy(){
   const missing=(SHIP_EXPORT.previewRows||[]).filter(r=>!String(r.productCode||'').trim());
   if(missing.length&&!SHIP_SKIP_CODES){
     $('code-register-rows').innerHTML=missing.map(r=>`<tr>
-      <td><div class="clip" title="${esc(r.productName||'')}">${esc(r.productName||'-')}</div></td>
+      <td><div class="code-product-name" title="${esc(r.productName||'')}">${esc(r.productName||'-')}</div></td>
       <td><div class="clip" title="${esc(r.optionText||'')}">${esc(r.optionText||'옵션 없음')}</div></td>
       <td class="mono">${esc(r.baseProductCode||'')}</td>
       <td><input data-code-register="${Number(r.orderId)}" placeholder="예: GS0601371A"></td>
