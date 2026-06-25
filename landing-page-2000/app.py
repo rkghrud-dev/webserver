@@ -996,21 +996,29 @@ def resolve_coupang_export_product_code(item: dict[str, Any], row: sqlite3.Row) 
 
 
 def shipment_export_row(row: sqlite3.Row, market_name: str, export_date: str) -> list[str]:
+    return shipment_export_detail(row, market_name, export_date)["values"]
+
+
+def shipment_export_detail(row: sqlite3.Row, market_name: str, export_date: str) -> dict[str, Any]:
     manual_product_code = clean_manual_product_code(str(row_value(row, "manual_product_code", "") or ""))
     raw = parse_raw_json(row["raw_json"])
     source = str(row["source_market"] or "").lower()
+    option_text = ""
+    base_product_code = ""
+    product_code = ""
     if source == "coupang":
         receiver = raw.get("receiver") if isinstance(raw.get("receiver"), dict) else {}
         item = select_coupang_item(raw, row["order_item_code"], row["shipping_code"])
         option_text = pick_text(item, "sellerProductItemName") or pick_text(item, "vendorItemName")
-        product_code = manual_product_code or apply_option_letter(resolve_coupang_export_product_code(item, row), option_text)
+        base_product_code = resolve_coupang_export_product_code(item, row)
+        product_code = manual_product_code or apply_option_letter(base_product_code, option_text)
         detail_address = pick_text(receiver, "addr2")
         full_address = combine_address(
             pick_text(receiver, "addr1"),
             detail_address,
             " ".join(v for v in (pick_text(receiver, "addr1"), pick_text(receiver, "addr2")) if v),
         )
-        return [
+        values = [
             product_code,
             market_name,
             export_date,
@@ -1022,18 +1030,20 @@ def shipment_export_row(row: sqlite3.Row, market_name: str, export_date: str) ->
             pick_text(raw, "parcelPrintMessage", "deliveryInstruction"),
             detail_address,
         ]
+        return shipment_export_detail_payload(row, values, option_text, base_product_code, manual_product_code)
 
     receiver = select_cafe24_receiver(raw, row["shipping_code"])
     item = select_cafe24_item(raw, row["order_item_code"])
     option_text = resolve_cafe24_option_text(item)
-    product_code = manual_product_code or apply_option_letter(resolve_cafe24_export_product_code(item, row), option_text)
+    base_product_code = resolve_cafe24_export_product_code(item, row)
+    product_code = manual_product_code or apply_option_letter(base_product_code, option_text)
     detail_address = pick_text(receiver, "address2")
     full_address = combine_address(
         pick_text(receiver, "address1"),
         detail_address,
         pick_text(receiver, "address_full"),
     )
-    return [
+    values = [
         product_code,
         market_name,
         export_date,
@@ -1045,16 +1055,46 @@ def shipment_export_row(row: sqlite3.Row, market_name: str, export_date: str) ->
         pick_text(receiver, "shipping_message"),
         detail_address,
     ]
+    return shipment_export_detail_payload(row, values, option_text, base_product_code, manual_product_code)
+
+
+def shipment_export_detail_payload(
+    row: sqlite3.Row,
+    values: list[str],
+    option_text: str,
+    base_product_code: str,
+    manual_product_code: str,
+) -> dict[str, Any]:
+    return {
+        "orderId": row["id"],
+        "sourceMarket": row["source_market"],
+        "marketName": row["market_name"],
+        "productName": row["product_name"],
+        "optionText": option_text,
+        "baseProductCode": base_product_code,
+        "manualProductCode": manual_product_code,
+        "productCode": values[0],
+        "quantity": row["quantity"] or 0,
+        "recipientName": row["recipient_name"],
+        "values": values,
+    }
 
 
 def build_shipment_clipboard(rows: list[sqlite3.Row], market_name: str, export_date: str) -> tuple[str, int]:
-    built = [shipment_export_row(row, market_name, export_date) for row in rows]
-    built = [row for row in built if row]
-    blank = [row for row in built if not row[0].strip()]
-    normal = [row for row in built if row[0].strip()]
+    built = [shipment_export_detail(row, market_name, export_date) for row in rows]
+    built = [row for row in built if row.get("values")]
+    blank = [row for row in built if not row["values"][0].strip()]
+    normal = [row for row in built if row["values"][0].strip()]
     ordered = blank + normal
-    text = "\n".join("\t".join(clean_export_value(value) for value in row) for row in ordered)
+    text = "\n".join("\t".join(clean_export_value(value) for value in row["values"]) for row in ordered)
     return text, len(blank)
+
+
+def build_shipment_export_preview(rows: list[sqlite3.Row], market_name: str, export_date: str) -> list[dict[str, Any]]:
+    built = [shipment_export_detail(row, market_name, export_date) for row in rows]
+    blank = [row for row in built if not str(row.get("productCode") or "").strip()]
+    normal = [row for row in built if str(row.get("productCode") or "").strip()]
+    return blank + normal
 
 
 def cafeshipment_order_public(row: sqlite3.Row) -> dict[str, Any]:
@@ -1485,12 +1525,30 @@ def cafeshipment_orders_export_clipboard(body: CafeShipmentExportBody, request: 
             )
         ]
         export_date = max(parsed_dates) if parsed_dates else datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    text, blank_count = build_shipment_clipboard(ordered_rows, body.market_name.strip() or "홈런마켓", export_date)
+    export_market_name = body.market_name.strip() or "홈런마켓"
+    text, blank_count = build_shipment_clipboard(ordered_rows, export_market_name, export_date)
+    preview_rows = build_shipment_export_preview(ordered_rows, export_market_name, export_date)
     return {
         "ok": True,
         "count": len(ordered_rows),
         "blankCount": blank_count,
         "clipboardText": text,
+        "marketName": export_market_name,
+        "exportDate": export_date,
+        "previewRows": [
+            {
+                "orderId": row["orderId"],
+                "sourceMarket": row["sourceMarket"],
+                "productName": row["productName"],
+                "optionText": row["optionText"],
+                "baseProductCode": row["baseProductCode"],
+                "manualProductCode": row["manualProductCode"],
+                "productCode": row["productCode"],
+                "quantity": row["quantity"],
+                "recipientName": row["recipientName"],
+            }
+            for row in preview_rows
+        ],
         "columns": [
             "공급사 상품명(매입상품명)",
             "상품옵션",

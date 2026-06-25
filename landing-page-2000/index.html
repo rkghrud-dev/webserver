@@ -120,6 +120,7 @@
   .orders-wrap{overflow:auto;border-radius:var(--radius)}
   .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.32);display:flex;align-items:center;justify-content:center;padding:18px;z-index:50}
   .modal{width:min(460px,100%);background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 18px 50px rgba(15,23,42,.18)}
+  .modal.wide{width:min(920px,100%)}
   .modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
   .modal-title{font-size:15px;font-weight:600}
   .modal-body{padding:16px}
@@ -127,6 +128,13 @@
   .code-cell{display:flex;align-items:center;gap:6px;min-width:0}
   .code-cell .clip{flex:1}
   .code-empty{color:var(--amber-tx);font-size:11px}
+  .checkrow{display:flex;gap:14px;align-items:center;margin:8px 0}
+  .checkrow label{display:flex;align-items:center;gap:6px;margin:0;color:var(--text)}
+  .checkrow input{width:16px;height:16px;margin:0}
+  .export-summary{font-size:12.5px;color:var(--muted);line-height:1.6;margin-top:10px;white-space:pre-line}
+  .code-register-wrap{max-height:330px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}
+  .code-register-wrap table{border:none;border-radius:0}
+  .code-register-wrap input{height:30px;margin:0}
 
   @media(max-width:640px){
     .login-card{flex-direction:column} .brand{flex:none}
@@ -329,6 +337,65 @@
   </main>
 </div>
 
+<div id="ship-export-modal" class="modal-backdrop hide">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">출고용</div>
+      <button class="mini-btn" onclick="closeShipExportModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="checkrow">
+        <span style="font-size:12px;color:var(--muted)">앞열 추가:</span>
+        <label><input id="ship-prepend-supplier" type="checkbox"> 공급사상품명</label>
+        <label><input id="ship-prepend-option" type="checkbox"> 옵션</label>
+      </div>
+      <label>B열 마켓명</label>
+      <select id="ship-export-market" onchange="loadShipExportPreview()">
+        <option value="홈런마켓">홈런마켓</option>
+        <option value="반짝세일">반짝세일</option>
+        <option value="스마트스토어">스마트스토어</option>
+      </select>
+      <label style="margin-top:10px">C열 날짜</label>
+      <input id="ship-export-date" type="date" onchange="loadShipExportPreview()">
+      <div class="export-summary" id="ship-export-summary">선택 주문을 체크하면 출고용 작업 메뉴가 열립니다.</div>
+      <div class="err" id="ship-export-msg"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeShipExportModal()">닫기</button>
+      <button class="btn" onclick="runShipExportCopy()"><i class="ti ti-copy"></i> 클립보드 복사</button>
+      <button class="btn primary" onclick="runShipExportCopy()"><i class="ti ti-file-spreadsheet"></i> 엑셀 저장</button>
+    </div>
+  </div>
+</div>
+
+<div id="code-register-modal" class="modal-backdrop hide">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div class="modal-title">직접입력 상품코드 등록</div>
+      <button class="mini-btn" onclick="closeCodeRegisterModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="key-status" style="margin-bottom:10px">상품코드를 입력해 저장하면 다음 출고용 생성부터 같은 주문에 적용됩니다.</div>
+      <div class="code-register-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:40%">공급사상품명</th>
+            <th style="width:20%">옵션</th>
+            <th style="width:16%">기본코드</th>
+            <th style="width:24%">상품코드 입력</th>
+          </tr></thead>
+          <tbody id="code-register-rows"></tbody>
+        </table>
+      </div>
+      <div class="err" id="code-register-msg"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="skipCodeRegister()">이번엔 건너뛰기</button>
+      <button class="btn primary" onclick="saveCodeRegisterAndContinue()">저장 후 계속</button>
+    </div>
+  </div>
+</div>
+
 <div id="product-code-modal" class="modal-backdrop hide">
   <div class="modal">
     <div class="modal-head">
@@ -353,6 +420,7 @@
 
 <script>
 let ME=null, MODE='login', FILTER='pending';
+let SHIP_EXPORT=null, SHIP_SKIP_CODES=false;
 const $=id=>document.getElementById(id);
 async function api(path,opts){const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'}},opts||{}));let d={};try{d=await r.json()}catch(e){}if(!r.ok){const detail=d.detail;throw new Error(typeof detail==='string'?detail:(detail&&detail.message)||'오류가 발생했습니다');}return d;}
 function show(view){$('view-login').classList.toggle('hide',view!=='login');$('view-app').classList.toggle('hide',view!=='app');}
@@ -453,14 +521,89 @@ async function copyToClipboard(text){
 async function copySelectedShipOrders(){
   const ids=selectedOrderIds();
   if(!ids.length){$('cs-msg').style.color='var(--amber-tx)';$('cs-msg').textContent='출고용으로 복사할 주문을 먼저 체크하세요.';return;}
-  let d;try{d=await api('/api/cafeshipment/orders/export-clipboard',{method:'POST',body:JSON.stringify({order_ids:ids.map(Number)})});}
+  SHIP_SKIP_CODES=false;
+  const selectedOrders=(window.CS_ORDERS||[]).filter(o=>ids.includes(String(o.id)));
+  const dates=selectedOrders.map(o=>String(o.orderDate||'').slice(0,10)).filter(Boolean).sort();
+  $('ship-export-date').value=dates.length?dates[dates.length-1]:new Date().toISOString().slice(0,10);
+  $('ship-export-market').value='홈런마켓';
+  await loadShipExportPreview();
+  $('ship-export-modal').classList.remove('hide');
+}
+function closeShipExportModal(){
+  $('ship-export-modal').classList.add('hide');
+}
+function closeCodeRegisterModal(){
+  $('code-register-modal').classList.add('hide');
+}
+function shipExportRequestBody(){
+  const ids=selectedOrderIds();
+  return {
+    order_ids:ids.map(Number),
+    market_name:$('ship-export-market').value||'홈런마켓',
+    export_date:$('ship-export-date').value||null
+  };
+}
+async function loadShipExportPreview(){
+  let d;try{d=await api('/api/cafeshipment/orders/export-clipboard',{method:'POST',body:JSON.stringify(shipExportRequestBody())});}
   catch(e){$('cs-msg').style.color='var(--red-tx)';$('cs-msg').textContent=e.message;return;}
+  SHIP_EXPORT=d;
+  const codeCount=(d.count||0)-(d.blankCount||0);
+  const optionMissing=(d.previewRows||[]).filter(r=>!r.optionText).length;
+  $('ship-export-summary').textContent=`선택 ${d.count}건 / 코드 생성 ${codeCount}건 / 직접 입력 ${d.blankCount}건 / 옵션 확인 ${optionMissing}건\n빈칸 ${d.blankCount}건은 맨 위로 복사됩니다.`;
+  $('ship-export-msg').textContent='';
+}
+async function runShipExportCopy(){
+  if(!SHIP_EXPORT) await loadShipExportPreview();
+  if(!SHIP_EXPORT)return;
+  const missing=(SHIP_EXPORT.previewRows||[]).filter(r=>!String(r.productCode||'').trim());
+  if(missing.length&&!SHIP_SKIP_CODES){
+    $('code-register-rows').innerHTML=missing.map(r=>`<tr>
+      <td><div class="clip" title="${esc(r.productName||'')}">${esc(r.productName||'-')}</div></td>
+      <td><div class="clip" title="${esc(r.optionText||'')}">${esc(r.optionText||'옵션 없음')}</div></td>
+      <td class="mono">${esc(r.baseProductCode||'')}</td>
+      <td><input data-code-register="${Number(r.orderId)}" placeholder="예: GS0601371A"></td>
+    </tr>`).join('');
+    $('code-register-msg').textContent='';
+    $('code-register-modal').classList.remove('hide');
+    return;
+  }
+  await finishShipExportCopy();
+}
+async function finishShipExportCopy(){
+  let d;try{d=await api('/api/cafeshipment/orders/export-clipboard',{method:'POST',body:JSON.stringify(shipExportRequestBody())});}
+  catch(e){$('ship-export-msg').style.color='var(--red-tx)';$('ship-export-msg').textContent=e.message;return;}
+  SHIP_EXPORT=d;
   const ok=await copyToClipboard(d.clipboardText||'');
-  if(!ok){$('cs-msg').style.color='var(--red-tx)';$('cs-msg').textContent='브라우저가 클립보드 복사를 막았습니다. 주소창 권한 또는 HTTPS 설정이 필요합니다.';return;}
+  if(!ok){$('ship-export-msg').style.color='var(--red-tx)';$('ship-export-msg').textContent='브라우저가 클립보드 복사를 막았습니다. 주소창 권한 또는 HTTPS 설정이 필요합니다.';return;}
+  const ids=selectedOrderIds();
   (window.CS_ORDERS||[]).filter(o=>ids.includes(String(o.id))).forEach(o=>localStorage.setItem(`${orderKey(o)}-copied`,'1'));
+  closeCodeRegisterModal();
+  closeShipExportModal();
   $('cs-msg').style.color='var(--green-tx)';
   $('cs-msg').textContent=`클립보드에 ${d.count}건을 복사했습니다. 구글 시트의 상품코드 셀부터 바로 붙여넣으면 됩니다.${d.blankCount>0?' 공급사 상품명 빈칸 '+d.blankCount+'건은 맨 위로 올려뒀습니다.':''}`;
   loadCafeShipmentOrders();
+}
+async function saveCodeRegisterAndContinue(){
+  const inputs=[...document.querySelectorAll('[data-code-register]')].filter(el=>el.value.trim());
+  if(!inputs.length){$('code-register-msg').style.color='var(--amber-tx)';$('code-register-msg').textContent='저장할 상품코드를 하나 이상 입력하세요.';return;}
+  try{
+    for(const el of inputs){
+      await api('/api/cafeshipment/orders/product-code',{method:'POST',body:JSON.stringify({order_id:Number(el.getAttribute('data-code-register')),product_code:el.value.trim(),note:'출고용 직접입력'})});
+    }
+    SHIP_SKIP_CODES=true;
+    closeCodeRegisterModal();
+    await loadCafeShipmentOrders();
+    await loadShipExportPreview();
+    await finishShipExportCopy();
+  }catch(e){
+    $('code-register-msg').style.color='var(--red-tx)';
+    $('code-register-msg').textContent=e.message;
+  }
+}
+async function skipCodeRegister(){
+  SHIP_SKIP_CODES=true;
+  closeCodeRegisterModal();
+  await finishShipExportCopy();
 }
 
 async function boot(){try{const d=await api('/api/me');ME=d.user;}catch(e){ME=null;}if(ME){renderApp();show('app');}else{show('login');}}
