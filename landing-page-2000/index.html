@@ -422,7 +422,7 @@
 
 <script>
 let ME=null, MODE='login', FILTER='pending';
-let SHIP_EXPORT=null, SHIP_SKIP_CODES=false;
+let SHIP_EXPORT=null, SHIP_SKIP_CODES=false, SHIP_EXPORT_IDS=[];
 const $=id=>document.getElementById(id);
 async function api(path,opts){const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'}},opts||{}));let d={};try{d=await r.json()}catch(e){}if(!r.ok){const detail=d.detail;throw new Error(typeof detail==='string'?detail:(detail&&detail.message)||'오류가 발생했습니다');}return d;}
 function show(view){$('view-login').classList.toggle('hide',view!=='login');$('view-app').classList.toggle('hide',view!=='app');}
@@ -523,6 +523,7 @@ async function copyToClipboard(text){
 async function copySelectedShipOrders(){
   const ids=selectedOrderIds();
   if(!ids.length){$('cs-msg').style.color='var(--amber-tx)';$('cs-msg').textContent='출고용으로 복사할 주문을 먼저 체크하세요.';return;}
+  SHIP_EXPORT_IDS=ids.map(Number);
   SHIP_SKIP_CODES=false;
   const selectedOrders=(window.CS_ORDERS||[]).filter(o=>ids.includes(String(o.id)));
   const dates=selectedOrders.map(o=>String(o.orderDate||'').slice(0,10)).filter(Boolean).sort();
@@ -533,14 +534,16 @@ async function copySelectedShipOrders(){
 }
 function closeShipExportModal(){
   $('ship-export-modal').classList.add('hide');
+  SHIP_EXPORT=null;
+  SHIP_EXPORT_IDS=[];
 }
 function closeCodeRegisterModal(){
   $('code-register-modal').classList.add('hide');
 }
 function shipExportRequestBody(){
-  const ids=selectedOrderIds();
+  const ids=SHIP_EXPORT_IDS.length?SHIP_EXPORT_IDS:selectedOrderIds().map(Number);
   return {
-    order_ids:ids.map(Number),
+    order_ids:ids,
     market_name:$('ship-export-market').value||'홈런마켓',
     export_date:$('ship-export-date').value||null
   };
@@ -577,7 +580,7 @@ async function finishShipExportCopy(){
   SHIP_EXPORT=d;
   const ok=await copyToClipboard(d.clipboardText||'');
   if(!ok){$('ship-export-msg').style.color='var(--red-tx)';$('ship-export-msg').textContent='브라우저가 클립보드 복사를 막았습니다. 주소창 권한 또는 HTTPS 설정이 필요합니다.';return;}
-  const ids=selectedOrderIds();
+  const ids=SHIP_EXPORT_IDS.map(String);
   (window.CS_ORDERS||[]).filter(o=>ids.includes(String(o.id))).forEach(o=>localStorage.setItem(`${orderKey(o)}-copied`,'1'));
   closeCodeRegisterModal();
   closeShipExportModal();
@@ -594,7 +597,6 @@ async function saveCodeRegisterAndContinue(){
     }
     SHIP_SKIP_CODES=true;
     closeCodeRegisterModal();
-    await loadCafeShipmentOrders();
     await loadShipExportPreview();
     await finishShipExportCopy();
   }catch(e){
