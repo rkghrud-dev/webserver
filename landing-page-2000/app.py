@@ -47,6 +47,10 @@ ALLOWED_MARKETS = {"naver", "coupang", "cafe24", "lotteon", "11st", "esm", "othe
 MARKET_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
 COUPANG_BASE_URL = os.environ.get("COUPANG_BASE_URL", "https://api-gateway.coupang.com")
 NAVER_COMMERCE_BASE_URL = os.environ.get("NAVER_COMMERCE_BASE_URL", "https://api.commerce.naver.com/external")
+GOOGLE_SERVICE_ACCOUNT_FILE = os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE", "/data/google/credentials.json")
+GOOGLE_DEFAULT_SPREADSHEET_ID = os.environ.get("GOOGLE_DEFAULT_SPREADSHEET_ID", "1WgLu0RciK6NKnPjKrcxmwIq0RouUsgv1Ib06eR4SI9A")
+GOOGLE_DEFAULT_SHEET_NAME = os.environ.get("GOOGLE_DEFAULT_SHEET_NAME", "출고정보")
+GOOGLE_SHEETS_SCOPES = ("https://www.googleapis.com/auth/spreadsheets",)
 
 
 def key_cipher() -> Fernet:
@@ -308,6 +312,15 @@ class CafeShipmentProductCodeBody(BaseModel):
     note: str = ""
 
 
+class GoogleSheetReadBody(BaseModel):
+    spreadsheet_id: str | None = None
+    sheet_name: str | None = None
+    vendor_names: list[str] = []
+    start_date: str | None = None
+    end_date: str | None = None
+    max_rows: int = 30000
+
+
 def require_active_user(request: Request) -> sqlite3.Row:
     u = require_user(request)
     if not (u["status"] == "active" or u["is_admin"]):
@@ -543,6 +556,142 @@ def pick_text(data: dict[str, Any], *names: str) -> str:
         if value is not None and str(value).strip():
             return str(value).strip()
     return ""
+
+
+GOOGLE_HEADER_HINTS = ("발주사", "상품코드", "수령인", "송장", "택배", "주문", "발주일")
+GOOGLE_PHONE_HINTS = (
+    "휴대폰",
+    "핸드폰",
+    "수령인휴대폰",
+    "수취인휴대폰",
+    "연락처",
+    "수취인전화",
+    "수령인전화",
+    "HP",
+    "Phone",
+    "CellPhone",
+    "전화번호",
+    "휴대전화",
+)
+GOOGLE_SHIPPING_COMPANY_HINTS = ("택배사", "배송사", "운송사", "택배", "배송업체", "운송업체")
+
+
+def google_service():
+    if not os.path.exists(GOOGLE_SERVICE_ACCOUNT_FILE):
+        raise HTTPException(status_code=500, detail=f"Google 서비스계정 파일이 없습니다: {GOOGLE_SERVICE_ACCOUNT_FILE}")
+    try:
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+    except ImportError as exc:
+        raise HTTPException(status_code=500, detail="Google Sheets 라이브러리가 서버에 설치되지 않았습니다.") from exc
+    credentials = service_account.Credentials.from_service_account_file(
+        GOOGLE_SERVICE_ACCOUNT_FILE,
+        scopes=list(GOOGLE_SHEETS_SCOPES),
+    )
+    return build("sheets", "v4", credentials=credentials, cache_discovery=False)
+
+
+def normalize_sheet_id(value: str | None) -> str:
+    text = (value or "").strip()
+    if not text or text.upper() == "YOUR_SPREADSHEET_ID":
+        return GOOGLE_DEFAULT_SPREADSHEET_ID
+    return text
+
+
+def normalize_sheet_name(value: str | None) -> str:
+    return (value or "").strip() or GOOGLE_DEFAULT_SHEET_NAME
+
+
+def sheet_cell(cells: list[Any], index: int) -> str:
+    return str(cells[index]).strip() if index < len(cells) and cells[index] is not None else ""
+
+
+def normalize_header_text(value: str) -> str:
+    return "".join(value.split()).lower()
+
+
+def find_google_header_row(values: list[list[Any]]) -> int:
+    best_index = 0
+    best_score = -1
+    for idx, cells in enumerate(values[:30]):
+        row_text = " ".join(str(cell) for cell in cells)
+        score = sum(1 for hint in GOOGLE_HEADER_HINTS if hint.lower() in row_text.lower())
+        if score > best_score:
+            best_score = score
+            best_index = idx
+    return best_index
+
+
+def find_header_column(headers: list[str], hints: tuple[str, ...], fallback: int) -> int:
+    normalized_hints = [normalize_header_text(hint) for hint in hints]
+    for idx, header in enumerate(headers):
+        normalized = normalize_header_text(header)
+        if any(hint in normalized for hint in normalized_hints):
+            return idx
+    return fallback
+
+
+def read_google_values(spreadsheet_id: str, sheet_name: str, max_rows: int = 30000) -> list[list[Any]]:
+    service = google_service()
+    bounded_rows = max(1, min(max_rows, 50000))
+    range_name = f"'{sheet_name}'!A1:ZZ{bounded_rows}"
+    try:
+        result = service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id,
+            range=range_name,
+            valueRenderOption="FORMATTED_VALUE",
+        ).execute()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Google Sheets 읽기 실패: {exc}") from exc
+    values = result.get("values", [])
+    return values if isinstance(values, list) else []
+
+
+def parse_google_shipment_rows(
+    values: list[list[Any]],
+    vendor_names: list[str] | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+) -> dict[str, Any]:
+    if not values:
+        return {"headers": [], "rows": [], "vendors": []}
+    header_index = find_google_header_row(values)
+    headers = [str(cell).strip() for cell in values[header_index]]
+    phone_col = find_header_column(headers, GOOGLE_PHONE_HINTS, 6)
+    shipping_col = find_header_column(headers, GOOGLE_SHIPPING_COMPANY_HINTS, -1)
+    vendor_filter = {v.strip() for v in (vendor_names or []) if v.strip()}
+    start_filter = start_date or ""
+    end_filter = end_date or ""
+    rows: list[dict[str, Any]] = []
+    vendors: set[str] = set()
+    for row_number, cells in enumerate(values[header_index + 1 :], start=header_index + 2):
+        vendor = sheet_cell(cells, 2)
+        if not vendor:
+            continue
+        if vendor_filter and vendor not in vendor_filter:
+            continue
+        order_date = sheet_cell(cells, 3)
+        if start_filter and order_date and order_date < start_filter:
+            continue
+        if end_filter and order_date and order_date > end_filter:
+            continue
+        raw = {headers[col]: sheet_cell(cells, col) for col in range(len(headers))}
+        phone = normalize_phone(sheet_cell(cells, phone_col))
+        row = {
+            "rowNumber": row_number,
+            "sourceRowKey": f"{vendor}|{phone}|{sheet_cell(cells, 11)}",
+            "vendorName": vendor,
+            "productCode": sheet_cell(cells, 1),
+            "orderDate": order_date,
+            "recipientName": sheet_cell(cells, 5),
+            "recipientPhone": phone,
+            "trackingNumber": sheet_cell(cells, 11),
+            "shippingCompany": sheet_cell(cells, shipping_col) if shipping_col >= 0 else "",
+            "rawData": raw,
+        }
+        rows.append(row)
+        vendors.add(vendor)
+    return {"headers": headers, "rows": rows, "vendors": sorted(vendors)}
 
 
 def cafe24_receiver(order: dict[str, Any]) -> dict[str, Any]:
@@ -1385,6 +1534,54 @@ async def market_proxy(market: str, body: MarketProxyBody, request: Request):
         "marketId": body.market_id,
         "statusCode": result["statusCode"],
         "data": result["data"],
+    }
+
+
+# ── Google Sheets: 서버 서비스계정으로 출고정보 읽기 ──
+@app.get("/api/cafeshipment/google/status")
+def cafeshipment_google_status(request: Request):
+    require_active_user(request)
+    exists = os.path.exists(GOOGLE_SERVICE_ACCOUNT_FILE)
+    return {
+        "ok": True,
+        "credentialReady": exists,
+        "credentialPath": GOOGLE_SERVICE_ACCOUNT_FILE,
+        "defaultSpreadsheetId": GOOGLE_DEFAULT_SPREADSHEET_ID,
+        "defaultSheetName": GOOGLE_DEFAULT_SHEET_NAME,
+    }
+
+
+@app.get("/api/cafeshipment/google/sheets")
+def cafeshipment_google_sheets(request: Request, spreadsheet_id: str | None = None):
+    require_active_user(request)
+    spreadsheet_id = normalize_sheet_id(spreadsheet_id)
+    try:
+        service = google_service()
+        spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Google Sheets 목록 조회 실패: {exc}") from exc
+    sheets = []
+    for sheet in spreadsheet.get("sheets", []):
+        props = sheet.get("properties", {})
+        sheets.append({"title": props.get("title", ""), "sheetId": props.get("sheetId")})
+    return {"ok": True, "spreadsheetId": spreadsheet_id, "sheets": sheets}
+
+
+@app.post("/api/cafeshipment/google/read-shipment-sheet")
+def cafeshipment_google_read_shipment_sheet(body: GoogleSheetReadBody, request: Request):
+    require_active_user(request)
+    spreadsheet_id = normalize_sheet_id(body.spreadsheet_id)
+    sheet_name = normalize_sheet_name(body.sheet_name)
+    values = read_google_values(spreadsheet_id, sheet_name, body.max_rows)
+    parsed = parse_google_shipment_rows(values, body.vendor_names, body.start_date, body.end_date)
+    return {
+        "ok": True,
+        "spreadsheetId": spreadsheet_id,
+        "sheetName": sheet_name,
+        "headerCount": len(parsed["headers"]),
+        "rowCount": len(parsed["rows"]),
+        "vendors": parsed["vendors"],
+        "rows": parsed["rows"][:1000],
     }
 
 
